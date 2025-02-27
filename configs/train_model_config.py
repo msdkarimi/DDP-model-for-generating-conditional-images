@@ -1,6 +1,12 @@
 from ml_collections import ConfigDict
-__all__ = ['get_config']
+__all__ = ['get_config', 'get_config_trainer']
 
+def get_config_trainer():
+    trainer_configs = ConfigDict()
+    trainer_configs.name = 'trainer'
+    trainer_configs.logger_name = 'ddpm_trainer'
+    trainer_configs.optimizer_config = _get_optimizer_config()
+    return trainer_configs
 
 
 def get_config():
@@ -14,7 +20,8 @@ def get_config():
 
 def _get_model_config():
     model_configs = ConfigDict()
-    model_configs.name = 'model'
+    model_configs.module = 'open_ai_unet'
+    model_configs.name = 'UNetModel'
     # TODO add model configs
     return model_configs
 
@@ -41,3 +48,7 @@ def _get_dataloader_config():
     dataloader_configs.num_workers = 0
     # TODO add dataloader_configs
     return dataloader_configs
+
+if __name__ == '__main__':
+    print(get_config())
+    exit(0)
