@@ -1,12 +1,13 @@
-__all__ = ['register_model', 'build_model']
 
 from collections.abc import Callable
 from ml_collections import ConfigDict
 import inspect
 import os
-_registry = dict()
+
 
 __all__ = ['register_model', 'builder']
+
+_registry = dict()
 
 def register_model(fun:Callable):
     # module_name = fun.__file__.split('.')[-1]
