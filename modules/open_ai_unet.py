@@ -1,7 +1,7 @@
 from abc import abstractmethod
 
 import math
-
+from utils.build import register_model
 import numpy as np
 import torch as th
 import torch.nn as nn
@@ -679,4 +679,6 @@ class SuperResModel(UNetModel):
         x = th.cat([x, upsampled], dim=1)
         return super().forward(x, timesteps, **kwargs)
 
-
+@register_model
+def unet_model_constructor(**kwargs) -> UNetModel:
+    return UNetModel(**kwargs)
