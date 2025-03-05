@@ -13,7 +13,7 @@ def register_model(fun:Callable):
     # module_name = fun.__file__.split('.')[-1]
     module_name = inspect.getfile(fun).split(os.sep)[-1].split('.')[0]
     _registry[module_name] = fun
-    print(f'{module_name} constructor registered!', )
+    print(f'-----> {module_name} constructor registered!', )
     return fun
 
 def builder(config:ConfigDict):

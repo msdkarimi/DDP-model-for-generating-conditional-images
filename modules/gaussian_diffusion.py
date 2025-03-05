@@ -46,5 +46,5 @@ class GaussianDiffusion(nn.Module):
 
 
 @register_model
-def construct_ddpm_model(**kwargs):
+def constructor_ddpm_model(**kwargs):
     return GaussianDiffusion(**kwargs)
