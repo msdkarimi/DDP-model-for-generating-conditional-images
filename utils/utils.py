@@ -1,4 +1,4 @@
-__all__ = ['count_params']
+
 def count_params(model, verbose=False):
     total_params = sum(p.numel() for p in model.parameters())
     if verbose:
