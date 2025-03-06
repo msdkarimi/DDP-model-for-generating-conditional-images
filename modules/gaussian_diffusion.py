@@ -1,13 +1,15 @@
 import torch
 import torch.nn as nn
 from functools import partial
-from utils.utils import count_params,
+from utils.utils import count_params
+from utils.ldm_util import default
 from utils.diffusion_util import make_beta_schedule, extract_into_tensor
-
-
+from einops import rearrange, repeat
 from utils.build import builder, register_model
 from modules.ema import LitEma
 from contextlib import contextmanager
+import modules.open_ai_model
+
 class GaussianDiffusion(nn.Module):
     # canonical DDPM
     def __init__(self,
@@ -45,8 +47,11 @@ class GaussianDiffusion(nn.Module):
         self.first_stage_key = first_stage_key
         self.image_size = image_size  # try conv?
         self.channels = channels
+        self.parameterization = parameterization
         self.use_positional_encodings = use_positional_encodings
-        self.model = builder(**unet_config)
+        unet_name = unet_config.name
+        del unet_config.name
+        self.model = builder(unet_name, **unet_config)
         # count_params(self.model, verbose=True)
         assert self.model is not None , 'there is problem with Unet model initialization!'
         self.use_ema = use_ema
@@ -167,17 +172,94 @@ class GaussianDiffusion(nn.Module):
         )
 
     def q_posterior(self, x_start, x_t, t):
+        """
+        Compute the mean and variance of the diffusion posterior:
+
+            q(x_{t-1} | x_t, x_0)
+
+        """
+        assert x_start.shape == x_t.shape , 'inconsistent shape for x_start and given x_t'
         posterior_mean = (
                 extract_into_tensor(self.posterior_mean_coef1, t, x_t.shape) * x_start +
                 extract_into_tensor(self.posterior_mean_coef2, t, x_t.shape) * x_t
         )
         posterior_variance = extract_into_tensor(self.posterior_variance, t, x_t.shape)
         posterior_log_variance_clipped = extract_into_tensor(self.posterior_log_variance_clipped, t, x_t.shape)
+
         return posterior_mean, posterior_variance, posterior_log_variance_clipped
 
+    def p_mean_variance(self, x, t, clip_denoised: bool):
+        """
+        Apply the model to get p(x_{t-1} | x_t), as well as a prediction of
+        the initial x, x_0.
+
+        """
+
+        raise NotImplementedError(f"for type {self.__class__.__name__} function << p_mean_variance >> is not implemented!")
 
 
+    @torch.no_grad()
+    def p_sample(self, x, t, clip_denoised=True, repeat_noise=False):
+        """
+        Sample x_{t-1} from the model at the given timestep.
+        """
+        raise NotImplementedError(f"for type {self.__class__.__name__} function << p_sample >> is not implemented!")
 
-@register_model
-def constructor_ddpm_model(**kwargs):
-    return GaussianDiffusion(**kwargs)
+
+    @torch.no_grad()
+    def p_sample_loop(self, shape, return_intermediates=False):
+        raise NotImplementedError(f"for type {self.__class__.__name__} function << p_sample_loop >> is not implemented!")
+
+    @torch.no_grad()
+    def sample(self, batch_size=16, return_intermediates=False):
+        raise NotImplementedError(f"for type {self.__class__.__name__} function << sample >> function is not implemented yet")
+
+    def q_sample(self, x_start, t, noise=None):
+        """
+        Diffuse the data for a given number of diffusion steps.
+
+        In other words, sample from q(x_t | x_0).
+
+        :param x_start: the initial data batch.
+        :param t: the number of diffusion steps (minus 1). Here, 0 means one step.
+        :param noise: if specified, the split-out normal noise.
+        :return: A noisy version of x_start.
+        """
+        noise = default(noise, lambda: torch.randn_like(x_start))
+        return (extract_into_tensor(self.sqrt_alphas_cumprod, t, x_start.shape) * x_start +
+                extract_into_tensor(self.sqrt_one_minus_alphas_cumprod, t, x_start.shape) * noise)
+
+    def get_loss(self, pred, target, mean=True):
+        if self.loss_type == 'l2':
+            if mean:
+                loss = torch.nn.functional.mse_loss(target, pred)
+            else:
+                loss = torch.nn.functional.mse_loss(target, pred, reduction='none')
+
+        else:
+            raise NotImplementedError(f"unknown loss type {self.loss_type}")
+
+        return loss
+
+    def p_losses(self, x_start, t, noise=None):
+        raise NotImplementedError(f"for type {self.__class__.__name__} function << p_losses >> is not implemented!")
+
+    def forward(self, x, t, c):
+        raise NotImplementedError(f"for type {self.__class__.__name__} function << forward >> is not implemented!")
+
+    def get_input(self, batch, k):
+        # raise NotImplementedError(f"for type {self.__class__.__name__} function << get_input >> is not implemented!")
+        x = batch[k]
+        if len(x.shape) == 3:
+            x = x[..., None]
+        x = rearrange(x, 'b h w c -> b c h w')
+        x = x.to(memory_format=torch.contiguous_format).float()
+        return x
+
+    def shared_step(self, x, t, c):
+        raise NotImplementedError(f"for type {self.__class__.__name__} function << shared_step >> is not implemented!")
+
+
+# @register_model
+# def constructor_ddpm_model(*args, **kwargs):
+#     return GaussianDiffusion(*args, **kwargs)

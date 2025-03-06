@@ -20,10 +20,10 @@ def register_model(fun:Callable):
     print(f'----> {module_name} constructor registered!', )
     return fun
 
-def builder(config:ConfigDict):
-    if config.name not in _registry:
-        print(f' {config.name} constructor not registered yet!')
+def builder(name, *args, **configs):
+    if name not in _registry:
+        print(f' {name} constructor not registered yet!')
         return None
     else:
-        print(f'built model {config.name} from config!')
-        return _registry[config.name](**config)
+        print(f'built model {name} from config!')
+        return _registry[name](*args, **configs)
