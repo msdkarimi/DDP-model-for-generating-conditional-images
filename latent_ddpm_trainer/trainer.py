@@ -38,6 +38,7 @@ class Trainer(object):
                                  **latent_diffusion_config)
         self.optimizer = None # TODO optimizer to do task
         self.lr_scheduler = build_scheduler(lr_scheduler_config, self.optimizer, self.num_steps_per_epoch, n_epochs)
+        self.n_epochs = n_epochs
         self.fp_16 = mix_precision
 
     def train_one_step(self, epoch, batch_idx, batch):
@@ -57,15 +58,16 @@ class Trainer(object):
         return self.l_d_model(batch)
 
     def backpropagation(self, epoch, batch_idx, loss:torch.Tensor):
+        _step = (epoch * self.num_steps_per_epoch) + batch_idx
         self.optimizer.zero_grad()
         # TODO implement the backpropagation
         loss.backward()
         self.optimizer.step()
-        self.lr_scheduler.step_update((epoch * self.num_steps_per_epoch) + batch_idx)
+        self.lr_scheduler.step_update(_step)
 
     def run(self):
 
-        for epoch in range(0, self.l_d_model.n_epochs):
+        for epoch in range(0, self.n_epochs):
             for idx, a_batch in enumerate(self.train_data_loader):
                 # {'image': images, 'caption': captions}
                 self.train_one_step(epoch, idx, a_batch)
