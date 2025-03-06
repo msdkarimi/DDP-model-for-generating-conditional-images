@@ -11,6 +11,7 @@ def get_config_trainer():
     trainer_configs = ConfigDict()
     trainer_configs.name = 'latent_ddpm_trainer'
     trainer_configs.logger_name = 'ddpm_trainer'
+    trainer_configs.mix_precision = False
     # trainer_configs.optimizer_config = get_optimizer_config()
     return trainer_configs, get_model_config()
 

@@ -208,12 +208,12 @@ class LatentDiffusion(GaussianDiffusion):
         else:
             raise NotImplementedError(f'model.conditioning_key could not be None!')
 
-    def forward(self, x, c):
-        x, c = self.get_input({'image': x, 'caption': c}, self.first_stage_key)
+    def forward(self, batch):
+        x, c = self.get_input(batch, self.first_stage_key)
         loss, loss_dict = self._forward_to_net(x, c)
         # TODO Do logging here
 
-        return loss
+        return loss, loss_dict
 
 
     @torch.no_grad()
