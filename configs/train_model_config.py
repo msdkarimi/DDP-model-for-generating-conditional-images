@@ -9,22 +9,23 @@ def get_logger_config():
 
 def get_config_trainer():
     trainer_configs = ConfigDict()
-    trainer_configs.name = 'latent_ddpm_trainer'
     trainer_configs.logger_name = 'ddpm_trainer'
     trainer_configs.mix_precision = False
-    # trainer_configs.optimizer_config = get_optimizer_config()
-    return trainer_configs, get_model_config()
+
+    trainer_configs.optimizer_name = 'ADAM'
+    trainer_configs.optimizer_base_lr = 5e-4
+    trainer_configs.optimizer_weight_decay = -1 # TODO update
+    trainer_configs.optimizer_betas = -1 # TODO update
+    trainer_configs.n_epochs = 200  # TODO update
 
 
 
 
+    return trainer_configs
 
-def get_model_config():
-    model_configs = ConfigDict()
-    model_configs.module = 'open_ai_unet'
-    model_configs.name = 'UNetModel'
-    # TODO add model configs
-    return model_configs
+
+
+
 
 def get_optimizer_config():
     opt_configs = ConfigDict()
@@ -33,9 +34,14 @@ def get_optimizer_config():
     # TODO add opt_configs
     return opt_configs
 
+
 def get_lr_scheduler_config():
     lr_scheduler_configs = ConfigDict()
-    # TODO add lr_scheduler_configs
+    lr_scheduler_configs.name = 'linear'
+    lr_scheduler_configs.t_in_epochs = False    # in order to update by batch not step
+    lr_scheduler_configs.warmup_epochs = 6    # in order to update by batch not step
+    lr_scheduler_configs.warmup_lr_init = 1e-8  # initial LR for warmup
+    lr_scheduler_configs.lr_min_rate = .01  # to multiply to decay the LR
     return lr_scheduler_configs
 
 def get_ddpm_config():
@@ -125,7 +131,7 @@ def get_conditioning_config():
 
 
 def get_all_config():
-    return get_unet_config(), get_diffusion_config(), get_first_stage_config(), get_conditioning_config(), get_latent_diffusion_config()
+    return get_unet_config(), get_diffusion_config(), get_first_stage_config(), get_conditioning_config(), get_latent_diffusion_config(), get_lr_scheduler_config()
 
 if __name__ == '__main__':
     print(get_all_config())
