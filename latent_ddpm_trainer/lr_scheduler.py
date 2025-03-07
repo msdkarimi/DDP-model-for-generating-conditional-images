@@ -15,12 +15,12 @@ def build_scheduler(config, optimizer, n_iter_per_epoch, n_epochs):
     num_steps = n_epochs * n_iter_per_epoch # TODO epoch handle
     warmup_steps = config.warmup_epochs * n_iter_per_epoch
 
-    if config.name == 'linear':
+    if config.name.lower() == 'linear':
         lr_scheduler = LinearLRScheduler(
             optimizer,
             t_initial=num_steps,
             lr_min_rate=config.lr_min_rate,
-            warmup_lr_init=float(config["TRAIN"]["WARMUP_LR"]),
+            warmup_lr_init=float(config.warmup_lr_init),
             warmup_t=warmup_steps,
             t_in_epochs=config.t_in_epochs,
         )

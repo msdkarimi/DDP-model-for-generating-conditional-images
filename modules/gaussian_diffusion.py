@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 from functools import partial
+import numpy as np
 from utils.utils import count_params
 from utils.ldm_util import default
 from utils.diffusion_util import make_beta_schedule, extract_into_tensor
@@ -52,8 +53,11 @@ class GaussianDiffusion(nn.Module):
         unet_name = unet_config.name
         del unet_config.name
         self.model = builder(unet_name, **unet_config)
-        # count_params(self.model, verbose=True)
+        count_params(self.model, verbose=True)
+        # print(self.model)
+
         assert self.model is not None , 'there is problem with Unet model initialization!'
+
         self.use_ema = use_ema
         if self.use_ema:
             self.model_ema = LitEma(self.model)

@@ -15,15 +15,15 @@ def register_model(fun:Callable):
     if module_name not in _registry:
         _registry[module_name] = fun
     else:
-        print(f'--> {module_name} has been registered earlier!', )
+        print(f'\t -->{module_name} has been registered earlier!', )
 
-    print(f'----> {module_name} constructor registered!', )
+    print(f'OK-{module_name} constructor registered!', )
     return fun
 
 def builder(name, *args, **configs):
     if name not in _registry:
-        print(f' {name} constructor not registered yet!')
+        print(f'\t --{name} constructor not registered yet!')
         return None
     else:
-        print(f'built model {name} from config!')
+        print(f'OK-built model {name} from config!')
         return _registry[name](*args, **configs)

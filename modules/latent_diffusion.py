@@ -1,4 +1,5 @@
 from modules.gaussian_diffusion import GaussianDiffusion
+from modules.clip_text_encoder  import FrozenCLIPEmbedder
 import torch
 from utils.diffusion_util import noise_like
 from utils.ldm_util import default
@@ -23,15 +24,17 @@ class LatentDiffusion(GaussianDiffusion):
                  ):
         vae_name = kwargs_autoencoder.name
         del kwargs_autoencoder.name
-        self.first_stage_model = builder(vae_name, **kwargs_autoencoder)
         conditioner_name = kwargs_conditioning_config.name
         del kwargs_conditioning_config.name
-        self.cond_stage_model = builder(conditioner_name, **kwargs_conditioning_config)
+
         self.cond_stage_forward = cond_stage_forward
         self.num_timesteps_cond = default(num_timesteps_cond, 1)
         self.scale_by_std = scale_by_std
         assert self.num_timesteps_cond <= kwargs_diffusion_config['timesteps']
         super().__init__(kwargs_unet_config, **kwargs_diffusion_config)
+        # side models
+        self.first_stage_model = builder(vae_name, **kwargs_autoencoder)
+        self.cond_stage_model:FrozenCLIPEmbedder = builder(conditioner_name, **kwargs_conditioning_config)
 
         self.cond_stage_trainable = cond_stage_trainable
         self.cond_stage_key = cond_stage_key

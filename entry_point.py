@@ -6,12 +6,12 @@ from configs.train_model_config import get_config_trainer, get_logger_config, ge
 def main():
     train_data_loader = None
     val_data_loader = None
-    trainer_ojb: Trainer = builder("trainer",
+    trainer: Trainer = builder("trainer",
                                    *(*get_all_config(),
                                      train_data_loader,
                                      val_data_loader),
                                    **get_logger_config())
-    trainer_ojb.run()
+    trainer.run()
 
 
 if __name__ == '__main__':

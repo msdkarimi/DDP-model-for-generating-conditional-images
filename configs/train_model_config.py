@@ -86,18 +86,35 @@ def get_diffusion_config():
 def get_unet_config():
     unet_configs = ConfigDict()
     unet_configs.name = "open_ai_model"
-    unet_configs.image_size = 64
-    unet_configs.in_channels = 3
-    unet_configs.out_channels = 3
-    unet_configs.model_channels = 192
-    unet_configs.attention_resolutions = [8, 4, 2]
+    unet_configs.image_size = 32
+    unet_configs.in_channels = 4
+    unet_configs.out_channels = 4
+    unet_configs.model_channels = 320
+    unet_configs.attention_resolutions = [4, 2, 1]
     unet_configs.num_res_blocks = 2
-    unet_configs.channel_mult = [1, 2, 3, 5]
-    unet_configs.num_head_channels = 32
+    unet_configs.channel_mult = [1, 2, 4, 4]
+    unet_configs.num_heads = 8
     unet_configs.use_spatial_transformer = True
     unet_configs.transformer_depth = 1
-    unet_configs.context_dim = 640
+    unet_configs.context_dim = 768 # 640
+    unet_configs.legacy = False
     return unet_configs
+
+# def get_unet_config():
+#     unet_configs = ConfigDict()
+#     unet_configs.name = "open_ai_model"
+#     unet_configs.image_size = 64
+#     unet_configs.in_channels = 3
+#     unet_configs.out_channels = 3
+#     unet_configs.model_channels = 192
+#     unet_configs.attention_resolutions = [8, 4, 2]
+#     unet_configs.num_res_blocks = 2
+#     unet_configs.channel_mult = [1, 2, 3, 5]
+#     unet_configs.num_head_channels = 32
+#     unet_configs.use_spatial_transformer = True
+#     unet_configs.transformer_depth = 1
+#     unet_configs.context_dim = 768 # 640
+#     return unet_configs
 
 def get_latent_diffusion_config():
     latent_diffusion_configs = ConfigDict()
@@ -117,6 +134,19 @@ def get_latent_diffusion_config():
 def get_first_stage_config():
     first_stage_configs = ConfigDict()
     first_stage_configs.name = 'autoencoder'
+    first_stage_configs.embed_dim = 4
+    # first_stage_configs.monitor: val / rec_loss
+    first_stage_configs.ddconfig = ConfigDict()
+    first_stage_configs.ddconfig.double_z = True
+    first_stage_configs.ddconfig.z_channels = 4
+    first_stage_configs.ddconfig.resolution = 256
+    first_stage_configs.ddconfig.in_channels = 3
+    first_stage_configs.ddconfig.out_ch = 3
+    first_stage_configs.ddconfig.ch = 128
+    first_stage_configs.ddconfig.ch_mult = [1, 2, 4, 4]
+    first_stage_configs.ddconfig.num_res_blocks = 2
+    first_stage_configs.ddconfig.attn_resolutions = []
+    first_stage_configs.ddconfig.dropout = 0.0
 
     # TODO decide which one KL/VQ VAE - maybe KL!!!
     return first_stage_configs
@@ -124,9 +154,10 @@ def get_first_stage_config():
 
 def get_conditioning_config():
     conditioning_configs = ConfigDict()
-    conditioning_configs.name = 'clip'
-    conditioning_configs.n_embed = 640
-    conditioning_configs.n_layer = 32
+    conditioning_configs.name = 'clip_text_encoder'
+    conditioning_configs.version = "openai/clip-vit-large-patch14"
+    # conditioning_configs.n_embed = 768
+    # conditioning_configs.n_layer = 32
     return conditioning_configs
 
 

@@ -7,17 +7,8 @@ import numpy as np
 import torch as th
 import torch.nn as nn
 import torch.nn.functional as F
-
-# from ldm.modules.diffusionmodules.util import (
-#     checkpoint,
-#     conv_nd,
-#     linear,
-#     avg_pool_nd,
-#     zero_module,
-#     normalization,
-#     timestep_embedding,
-# )
-# from ldm.modules.attention import SpatialTransformer
+from utils.diffusion_util import checkpoint, conv_nd, linear, avg_pool_nd, zero_module, normalization, timestep_embedding
+from modules.attention import SpatialTransformer
 
 
 # dummy replace
@@ -473,9 +464,9 @@ class UNetModel(nn.Module):
 
         if context_dim is not None:
             assert use_spatial_transformer, 'Fool!! You forgot to use the spatial transformer for your cross-attention conditioning...'
-            from omegaconf.listconfig import ListConfig
-            if type(context_dim) == ListConfig:
-                context_dim = list(context_dim)
+            # from omegaconf.listconfig import ListConfig
+            # if type(context_dim) == ListConfig:
+            #     context_dim = list(context_dim)
 
         if num_heads_upsample == -1:
             num_heads_upsample = num_heads
