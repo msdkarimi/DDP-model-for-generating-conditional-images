@@ -8,6 +8,7 @@ from einops import rearrange, repeat
 from utils.build import builder, register_model
 from modules.distributions import DiagonalGaussianDistribution
 from utils.utils import count_params
+from tqdm import tqdm
 
 __conditioning_keys__ = {'concat': 'c_concat',
                          'crossattn': 'c_crossattn',
@@ -76,6 +77,8 @@ class LatentDiffusion(GaussianDiffusion):
     def p_mean_variance(self, x, c, t,
                         clip_denoised: bool, quantize_denoised=False, corrector_kwargs=None):
         """
+        Apply the model to get p(x_{t-1} | x_t), as well as a prediction of
+        the initial x, x_0.
         based on models prediction of noise(aka eps), and given t, tries to predict the x_0, then computes the posterior of mu and var
         """
 
@@ -97,6 +100,9 @@ class LatentDiffusion(GaussianDiffusion):
     def p_sample(self, x, c, t, clip_denoised=False, repeat_noise=False,
                  return_codebook_ids=False, quantize_denoised=False, return_x0=False,
                  temperature=1., noise_dropout=0., score_corrector=None, corrector_kwargs=None):
+        """
+        Sample x_{t-1} from the model at the given timestep.
+        """
 
 
         b, *_, device = *x.shape, x.device
@@ -120,8 +126,58 @@ class LatentDiffusion(GaussianDiffusion):
                       x_T=None, verbose=True, callback=None, timesteps=None, quantize_denoised=False,
                       mask=None, x0=None, img_callback=None, start_T=None,
                       log_every_t=None):
-        # TODO implement the sampler function
-        pass
+        """
+        Generate samples from the model
+        """
+
+        if not log_every_t:
+            log_every_t = self.log_every_t
+        device = self.betas.device
+        b = shape[0]
+        if x_T is None:
+            img = torch.randn(shape, device=device)
+        else:
+            img = x_T
+
+        intermediates = [img]
+        if timesteps is None:
+            timesteps = self.num_timesteps
+
+        if start_T is not None:
+            timesteps = min(timesteps, start_T)
+        iterator = tqdm(reversed(range(0, timesteps)), desc='Sampling t', total=timesteps) if verbose else reversed(
+            range(0, timesteps))
+
+        if mask is not None:
+            assert x0 is not None
+            assert x0.shape[2:3] == mask.shape[2:3]  # spatial size has to match
+
+
+        for i in iterator:
+            ts = torch.full((b,), i, device=device, dtype=torch.long)
+            # if self.shorten_cond_schedule:
+            #     assert self.model.conditioning_key != 'hybrid'
+            #     tc = self.cond_ids[ts].to(cond.device)
+            #     cond = self.q_sample(x_start=cond, t=tc, noise=torch.randn_like(cond))
+
+            img = self.p_sample(img, cond, ts,
+                                clip_denoised=self.clip_denoised,
+                                quantize_denoised=quantize_denoised)
+            if mask is not None:
+                img_orig = self.q_sample(x0, ts)
+                img = img_orig * mask + (1. - mask) * img
+
+            if i % log_every_t == 0 or i == timesteps - 1:
+                intermediates.append(img)
+            # if callback: callback(i)
+            # if img_callback: img_callback(img, i)
+
+        if return_intermediates:
+            return img, intermediates
+        return img
+
+
+
 
 
     @torch.no_grad()
@@ -255,8 +311,17 @@ class LatentDiffusion(GaussianDiffusion):
         else:
             raise NotImplementedError(f'only supports pretrained model for conditioning')
         return c
-    # TODO validation handlers.
 
+    def log_images(self):
+        pass # TODO handle this part of the pipeline
+
+    def validation_step(self, batch): # TODO take care of the validation forward and EMA
+        _, loss_dict_no_ema = self.feed_forward(batch)
+        with self.ema_scope():
+            _, loss_dict_ema = self.feed_forward(batch)
+            loss_dict_ema = {key + '_ema': loss_dict_ema[key] for key in loss_dict_ema}
+        self.log_dict(loss_dict_no_ema, prog_bar=False, logger=True, on_step=False, on_epoch=True)
+        self.log_dict(loss_dict_ema, prog_bar=False, logger=True, on_step=False, on_epoch=True)
 @register_model
 def latent_diffusion_constractor(*args, **kwargs_latent_diffusion):
     return LatentDiffusion(*args, **kwargs_latent_diffusion)

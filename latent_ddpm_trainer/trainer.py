@@ -43,15 +43,16 @@ class Trainer(object):
         self.fp_16 = mix_precision
 
     def train_one_step(self, epoch, batch_idx, batch):
+        self.l_d_model.model.train()
         self.forward_backward_step(epoch, batch_idx, batch)
 
     def forward_backward_step(self, epoch, batch_idx, batch):
         loss, loss_dict = self.feed_forward(batch)
         self.backpropagation(epoch, batch_idx, loss)
 
-
     def feed_forward(self, batch)-> torch.Tensor:
         return self.l_d_model(batch)
+
 
     def backpropagation(self, epoch, batch_idx, loss:torch.Tensor):
         _step = (epoch * self.num_steps_per_epoch) + batch_idx
@@ -66,13 +67,22 @@ class Trainer(object):
             # TODO needs to handle the case that mp. returns false
             raise NotImplementedError
 
-    def run(self):
+    @torch.no_grad()
+    def validation(self):
+        for idx, batch in enumerate(self.val_data_loader):# TODO use tqdm
+            self.l_d_model.validation_step(batch)
 
+
+
+    def run(self):
         for epoch in range(0, self.n_epochs):
-            for idx, a_batch in enumerate(self.train_data_loader):
+            for idx, a_batch in enumerate(self.train_data_loader):# TODO use tqdm
                 # {'image': images, 'caption': captions}
 
                 self.train_one_step(epoch, idx, a_batch)
+
+                if (epoch * idx + idx) % 1000 == 0: # TODO handle the log_every in config
+                    self.validation()
 
 
 @register_model
