@@ -52,9 +52,12 @@ class GaussianDiffusion(nn.Module):
         self.use_positional_encodings = use_positional_encodings
         unet_name = unet_config.name
         del unet_config.name
+        self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+        # self.model = builder(unet_name, **unet_config).to(self.device)
         self.model = builder(unet_name, **unet_config)
-        count_params(self.model, verbose=True)
+        # count_params(self.model, verbose=True)
         # print(self.model)
+
 
         assert self.model is not None , 'there is problem with Unet model initialization!'
 
@@ -84,7 +87,7 @@ class GaussianDiffusion(nn.Module):
         self.loss_type = loss_type
 
         self.learn_logvar = learn_logvar
-        self.logvar = torch.full(fill_value=logvar_init, size=(self.num_timesteps,))
+        self.logvar = torch.full(fill_value=logvar_init, size=(self.num_timesteps,)).to(self.device)
         if self.learn_logvar:
             self.logvar = nn.Parameter(self.logvar, requires_grad=True)
 
@@ -256,7 +259,7 @@ class GaussianDiffusion(nn.Module):
         x = batch[k]
         if len(x.shape) == 3:
             x = x[..., None]
-        x = rearrange(x, 'b h w c -> b c h w')
+        # x = rearrange(x, 'b h w c -> b c h w') # TODO make sure of commenting this part, because the image already has the required shape
         x = x.to(memory_format=torch.contiguous_format).float()
         return x
 

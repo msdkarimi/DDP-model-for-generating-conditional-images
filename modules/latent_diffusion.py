@@ -1,11 +1,13 @@
 from modules.gaussian_diffusion import GaussianDiffusion
 from modules.clip_text_encoder  import FrozenCLIPEmbedder
+from modules.autoencoder import AutoencoderKL
 import torch
 from utils.diffusion_util import noise_like
 from utils.ldm_util import default
 from einops import rearrange, repeat
 from utils.build import builder, register_model
 from modules.distributions import DiagonalGaussianDistribution
+from utils.utils import count_params
 
 __conditioning_keys__ = {'concat': 'c_concat',
                          'crossattn': 'c_crossattn',
@@ -27,6 +29,8 @@ class LatentDiffusion(GaussianDiffusion):
         conditioner_name = kwargs_conditioning_config.name
         del kwargs_conditioning_config.name
 
+        self.conditioning_key = conditioning_key
+
         self.cond_stage_forward = cond_stage_forward
         self.num_timesteps_cond = default(num_timesteps_cond, 1)
         self.scale_by_std = scale_by_std
@@ -34,13 +38,19 @@ class LatentDiffusion(GaussianDiffusion):
         super().__init__(kwargs_unet_config, **kwargs_diffusion_config)
         # side models
         self.first_stage_model = builder(vae_name, **kwargs_autoencoder)
+        # self.first_stage_model = builder(vae_name, **kwargs_autoencoder).to(self.device)
+        # self.cond_stage_model:FrozenCLIPEmbedder = builder(conditioner_name, **kwargs_conditioning_config).to(self.device)
         self.cond_stage_model:FrozenCLIPEmbedder = builder(conditioner_name, **kwargs_conditioning_config)
+
+        # count_params(self.model, verbose=True)
+        # count_params(self.cond_stage_model, verbose=True)
+        # count_params(self.first_stage_model, verbose=True)
 
         self.cond_stage_trainable = cond_stage_trainable
         self.cond_stage_key = cond_stage_key
 
         try:
-            self.num_downs = len(kwargs_autoencoder.params.ddconfig.ch_mult) - 1
+            self.num_downs = len(kwargs_autoencoder.ddconfig.ch_mult) - 1
         except:
             self.num_downs = 0
 
@@ -81,7 +91,7 @@ class LatentDiffusion(GaussianDiffusion):
 
         model_mean, posterior_variance, posterior_log_variance = self.q_posterior(x_start=x_recon, x_t=x, t=t)
 
-        return model_mean, posterior_variance, posterior_log_variance
+        return model_mean, posterior_variance, posterior_log_variance, x_recon
 
     @torch.no_grad()
     def p_sample(self, x, c, t, clip_denoised=False, repeat_noise=False,
@@ -90,7 +100,7 @@ class LatentDiffusion(GaussianDiffusion):
 
 
         b, *_, device = *x.shape, x.device
-        model_mean, _, model_log_variance = self.p_mean_variance(x=x, c=c, t=t,
+        model_mean, _, model_log_variance, x_recon = self.p_mean_variance(x=x, c=c, t=t,
                                        clip_denoised=clip_denoised,
                                        quantize_denoised=quantize_denoised,
                                        corrector_kwargs=corrector_kwargs)
@@ -153,7 +163,8 @@ class LatentDiffusion(GaussianDiffusion):
         loss_simple = self.get_loss(model_output, target, mean=False).mean([1, 2, 3])
         loss_dict.update({f'{prefix}/loss_simple': loss_simple.mean()})
 
-        logvar_t = self.logvar[t].to(self.device)
+        # logvar_t = self.logvar[t].to(self.device)
+        logvar_t = self.logvar[t]
         loss = loss_simple / torch.exp(logvar_t) + logvar_t
 
         if self.learn_logvar:
@@ -173,13 +184,14 @@ class LatentDiffusion(GaussianDiffusion):
 
     def _forward_to_net(self, x, c, *args, **kwargs):
         t = torch.randint(0, self.num_timesteps, (x.shape[0],), device=self.device).long()
-        if self.model.conditioning_key is not None:
+        # if self.model.conditioning_key is not None:
+        if self.conditioning_key is not None:
             assert c is not None, 'conditioning key must be provided!'
-            if self.cond_stage_trainable:
+            if not self.cond_stage_trainable:
                 c = self.get_learned_conditioning(c)
-            if self.shorten_cond_schedule:  # TODO: drop this option
-                tc = self.cond_ids[t].to(self.device)
-                c = self.q_sample(x_start=c, t=tc, noise=torch.randn_like(c.float()))
+            # if self.shorten_cond_schedule:  # TODO: drop this option
+            #     tc = self.cond_ids[t].to(self.device)
+            #     c = self.q_sample(x_start=c, t=tc, noise=torch.randn_like(c.float()))
         return self.p_losses(x, c, t, *args, **kwargs)
 
 
@@ -195,13 +207,13 @@ class LatentDiffusion(GaussianDiffusion):
         x = x.to(self.device)
         encoder_posterior = self.encode_first_stage(x)
         z = self.get_first_stage_encoding(encoder_posterior).detach()
-        if self.model.conditioning_key is not None:
+        # if self.model.conditioning_key is not None:
+        if self.conditioning_key is not None:
             if cond_key is None:
                 cond_key = self.cond_stage_key
             if cond_key != self.first_stage_key:
                 if cond_key in ['caption', 'coordinates_bbox']:
-                    xc = batch[cond_key] # this
-                    c = xc  # this wil be applied
+                    c = batch[cond_key] # this
                     if bs is not None:
                         c = c[:bs]
                     out = [z, c]  # then this

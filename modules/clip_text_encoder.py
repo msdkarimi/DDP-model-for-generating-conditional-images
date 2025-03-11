@@ -36,15 +36,18 @@ class FrozenCLIPEmbedder(AbstractEncoder):
     def encode(self, text):
         return self(text)
 
-if __name__ == "__main__":
-    from utils.utils import count_params
-    model = FrozenCLIPEmbedder()
-    model = model.cuda()
-    res = model.encode('im going to creat my ldm and im excited')
-    print(res.shape)
-    print(res)
-    count_params(model, verbose=True)
+
 
 @register_model
 def clip_constractor(*args, **kwargs):
     return FrozenCLIPEmbedder(*args, **kwargs)
+
+
+if __name__ == "__main__":
+    from utils.utils import count_params
+    txt_encoder = FrozenCLIPEmbedder().cuda()
+    count_params(txt_encoder, verbose=True)
+    for i in range(100000):
+        _txt = 'hi i am just a test'
+        z_txt = txt_encoder.encode(_txt)
+        print(z_txt.shape)

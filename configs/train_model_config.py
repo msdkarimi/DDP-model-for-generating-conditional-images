@@ -83,50 +83,58 @@ def get_diffusion_config():
 
     return diffusion_configs
 
+# def get_unet_config():
+#     """
+#     this is for the 860M unet model
+#     """
+#     unet_configs = ConfigDict()
+#     unet_configs.name = "open_ai_model"
+#     unet_configs.image_size = 32
+#     unet_configs.in_channels = 4
+#     unet_configs.out_channels = 4
+#     unet_configs.model_channels = 320
+#     unet_configs.attention_resolutions = [4, 2, 1]
+#     unet_configs.num_res_blocks = 2
+#     unet_configs.channel_mult = [1, 2, 4, 4]
+#     unet_configs.num_heads = 8
+#     unet_configs.use_spatial_transformer = True
+#     unet_configs.transformer_depth = 1
+#     unet_configs.context_dim = 768 # 640
+#     unet_configs.legacy = False
+#     return unet_configs
+
 def get_unet_config():
+    """
+    for model as big as model for CELEB_A
+    """
     unet_configs = ConfigDict()
     unet_configs.name = "open_ai_model"
     unet_configs.image_size = 32
     unet_configs.in_channels = 4
     unet_configs.out_channels = 4
-    unet_configs.model_channels = 320
+    unet_configs.model_channels = 224
     unet_configs.attention_resolutions = [4, 2, 1]
     unet_configs.num_res_blocks = 2
-    unet_configs.channel_mult = [1, 2, 4, 4]
-    unet_configs.num_heads = 8
+    unet_configs.channel_mult = [1, 2, 3, 4]
+    unet_configs.num_head_channels = 32
     unet_configs.use_spatial_transformer = True
     unet_configs.transformer_depth = 1
     unet_configs.context_dim = 768 # 640
-    unet_configs.legacy = False
     return unet_configs
-
-# def get_unet_config():
-#     unet_configs = ConfigDict()
-#     unet_configs.name = "open_ai_model"
-#     unet_configs.image_size = 64
-#     unet_configs.in_channels = 3
-#     unet_configs.out_channels = 3
-#     unet_configs.model_channels = 192
-#     unet_configs.attention_resolutions = [8, 4, 2]
-#     unet_configs.num_res_blocks = 2
-#     unet_configs.channel_mult = [1, 2, 3, 5]
-#     unet_configs.num_head_channels = 32
-#     unet_configs.use_spatial_transformer = True
-#     unet_configs.transformer_depth = 1
-#     unet_configs.context_dim = 768 # 640
-#     return unet_configs
 
 def get_latent_diffusion_config():
     latent_diffusion_configs = ConfigDict()
     latent_diffusion_configs.name = 'latent_diffusion'
     latent_diffusion_configs.num_timesteps_cond = 1
     latent_diffusion_configs.cond_stage_key = "caption"
-    latent_diffusion_configs.cond_stage_trainable = True
+    latent_diffusion_configs.cond_stage_trainable = False
     # latent_diffusion_configs.concat_mode = True
     latent_diffusion_configs.cond_stage_forward = None
     latent_diffusion_configs.conditioning_key = 'crossattn'
-    latent_diffusion_configs.scale_factor = 1.0
-    latent_diffusion_configs.scale_by_std = False
+    # latent_diffusion_configs.scale_factor = 1.0
+    # latent_diffusion_configs.scale_by_std = False
+    latent_diffusion_configs.scale_factor = 0.18215
+    latent_diffusion_configs.scale_by_std = True
 
 
     return latent_diffusion_configs
@@ -135,6 +143,8 @@ def get_first_stage_config():
     first_stage_configs = ConfigDict()
     first_stage_configs.name = 'autoencoder'
     first_stage_configs.embed_dim = 4
+    first_stage_configs.ckpt_path = "pretrained/vae_f_8.ckpt"  # None
+    # first_stage_configs.ckpt_path = "../pretrained/vae_f_8.ckpt"  # None
     # first_stage_configs.monitor: val / rec_loss
     first_stage_configs.ddconfig = ConfigDict()
     first_stage_configs.ddconfig.double_z = True
@@ -147,8 +157,6 @@ def get_first_stage_config():
     first_stage_configs.ddconfig.num_res_blocks = 2
     first_stage_configs.ddconfig.attn_resolutions = []
     first_stage_configs.ddconfig.dropout = 0.0
-
-    # TODO decide which one KL/VQ VAE - maybe KL!!!
     return first_stage_configs
 
 
