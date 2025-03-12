@@ -77,7 +77,7 @@ class GaussianDiffusion(nn.Module):
         if monitor is not None:
             self.monitor = monitor
 
-        # TODO add function
+        # TODO add function for checkpointing
         # if ckpt_path is not None:
         #     self.init_from_ckpt(ckpt_path, ignore_keys=ignore_keys, only_model=load_only_unet)
 
@@ -146,7 +146,7 @@ class GaussianDiffusion(nn.Module):
         assert not torch.isnan(self.lvlb_weights).all()
 
     @contextmanager
-    def ema_scope(self, context=None): # TODO EMA
+    def ema_scope(self, context=None):
         if self.use_ema:
             self.model_ema.store(self.model.parameters()) # saving the current training parameters, allowing them to be restored later.
             self.model_ema.copy_to(self.model) # replacing the model's weights with the EMA weights
