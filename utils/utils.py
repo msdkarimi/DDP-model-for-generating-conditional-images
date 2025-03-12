@@ -189,9 +189,9 @@ def make_grid(
     return grid
 
 
-def log_loss_dict(loss_dict, logger):
-    for key in loss_dict.keys():
-        logger.info(f'{key}: {loss_dict[key].item()}')
+def log_dict(loss_dict, logger):
+    _log = "\t".join(f"{key}: {loss_dict[key].item()}" for key in loss_dict)
+    logger.info(_log)
 
 
 if __name__ == '__main__':
