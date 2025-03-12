@@ -176,10 +176,6 @@ class LatentDiffusion(GaussianDiffusion):
             return img, intermediates
         return img
 
-
-
-
-
     @torch.no_grad()
     def sample(self, cond, batch_size=16, return_intermediates=False, x_T=None,
                verbose=True, timesteps=None, quantize_denoised=False,
