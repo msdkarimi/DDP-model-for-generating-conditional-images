@@ -1,4 +1,11 @@
 # Byte-compiled / optimized / DLL files
 tst.py
 pretrained/
+.idea
+data/train
+data/*.txt
+data/*.jpg
+data/*.json
+data/*.ttf
+ddpm_trainer_logger/
 __pycache__/
