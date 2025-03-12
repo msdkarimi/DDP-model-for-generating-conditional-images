@@ -413,6 +413,7 @@ class LatentDiffusion(GaussianDiffusion):
     def log_images(self, batch, N=8, n_row=2, sample=True, ddim_steps=None, ddim_eta=1., return_keys=None,
                    quantize_denoised=True, inpaint=True, plot_denoise_rows=False, plot_progressive_rows=True,
                    plot_diffusion_rows=True, **kwargs):
+        log_every_t = kwargs.get('log_every_t', self.log_every_t)
         use_ddim = ddim_steps is not None
         _log = dict()
 
@@ -438,7 +439,7 @@ class LatentDiffusion(GaussianDiffusion):
             _diffused_images = list()
             z_start = z[:n_row]
             for t in range(self.num_timesteps):
-                if t % self.log_every_t == 0 or t == self.num_timesteps - 1: # TODO check if i need to differentiate between the log_every
+                if t % log_every_t == 0 or t == self.num_timesteps - 1: # TODO check if i need to differentiate between the log_every
                     t = repeat(torch.tensor([t]), '1 -> b', b=n_row)
                     t = t.to(self.device).long()
                     noise = torch.randn_like(z_start)

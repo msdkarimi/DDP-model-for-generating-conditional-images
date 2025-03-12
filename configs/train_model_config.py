@@ -185,7 +185,7 @@ def get_log_image_kwargs():
     image_logger_configs = ConfigDict()
     image_logger_configs.log_every_t = 25
     image_logger_configs.plot_progressive_rows = True
-    image_logger_configs.ddim_steps = 200
+    image_logger_configs.ddim_steps = None
     image_logger_configs.plot_denoise_rows = False
     return image_logger_configs
 
