@@ -5,20 +5,18 @@ import numpy as np
 from PIL import Image
 
 class ImageLogger(object):
-    def __init__(self, logger_name, logger_folder, frequency=1000, save_dir='', rescale=True, log_on='step', clamp=True):
+    def __init__(self, logger_name, logger_folder, log_image_kwargs, frequency=1000, save_dir='', rescale=True, log_on='step', clamp=True):
         self.frequency = frequency
         self.save_dir = [logger_name, logger_folder,]
         self.rescale = rescale
         self.log_on = log_on
         self.clamp = clamp
-        self.msd = 'msd'
+        self.log_image_kwargs = log_image_kwargs
 
-
-# kwargs = plot_denoise_rows = True/ -False, ddim_steps=200, plot_progressive_rows=True, log_every_t(in this way this could be completely different from the train one.)
-    def do_log(self, model, num_steps_per_epoch,mode, epoch, batch_idx, batch, kwargs= {}):
+    def do_log(self, model, num_steps_per_epoch,mode, epoch, batch_idx, batch, **kwargs):
         def _log_images(split):
             with torch.no_grad():
-                images = model.log_images(batch, **kwargs)
+                images = model.log_images(batch, **self.log_image_kwargs)
 
             for key in images:  # key could be dict_keys(['inputs', 'reconstructions', 'conditionings', 'diffused_images', 'samples', 'progressive_row'])
                 if isinstance(images[key], torch.Tensor):
@@ -54,5 +52,5 @@ class ImageLogger(object):
             _log_images(mode)
 
 
-def build_image_logger(logger_name, logger_folder, kwargs):
-    return ImageLogger(logger_name, logger_folder, **kwargs)
+def build_image_logger(*args, **kwargs):
+    return ImageLogger(*args, **kwargs)

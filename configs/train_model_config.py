@@ -178,10 +178,21 @@ def get_image_logger_config():
     image_logger_configs.clamp = True
     return image_logger_configs
 
+# kwargs = plot_denoise_rows = True/ -False, ddim_steps=200, plot_progressive_rows=True, log_every_t(in this way this could be completely different from the train one.)
+
+
+def get_log_image_kwargs():
+    image_logger_configs = ConfigDict()
+    image_logger_configs.log_every_t = 25
+    image_logger_configs.plot_progressive_rows = True
+    image_logger_configs.ddim_steps = 200
+    image_logger_configs.plot_denoise_rows = False
+    return image_logger_configs
+
 
 
 def get_all_config():
-    return get_unet_config(), get_diffusion_config(), get_first_stage_config(), get_conditioning_config(), get_latent_diffusion_config(), get_image_logger_config(), get_lr_scheduler_config()
+    return get_unet_config(), get_diffusion_config(), get_first_stage_config(), get_conditioning_config(), get_latent_diffusion_config(), get_image_logger_config(), get_log_image_kwargs(), get_lr_scheduler_config()
 
 if __name__ == '__main__':
     print(get_all_config())

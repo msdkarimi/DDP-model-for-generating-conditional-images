@@ -15,6 +15,7 @@ class Trainer(LogHelper):
                  text_embeder_config,
                  latent_diffusion_config,
                  image_logger_config,
+                 log_image_kwargs,
                  lr_scheduler_config,
                  train_data_loader,
                  val_data_loader,
@@ -44,7 +45,7 @@ class Trainer(LogHelper):
         self.lr_scheduler = build_scheduler(lr_scheduler_config, self.optimizer, self.num_steps_per_epoch, n_epochs)
         self.n_epochs = n_epochs
         # self.image_logger = build_image_logger(config_image_logger)
-        self.image_logger = build_image_logger(logger_name, logger_folder, image_logger_config)
+        self.image_logger = build_image_logger(logger_name, logger_folder, log_image_kwargs, image_logger_config)
         self.fp_16 = mix_precision
 
     def train_one_step(self, epoch, batch_idx, batch):
@@ -52,7 +53,7 @@ class Trainer(LogHelper):
         self.forward_backward_step(epoch, batch_idx, batch)
 
     def forward_backward_step(self, epoch, batch_idx, batch):
-        self.image_logger.do_log(self.l_d_model, self.num_steps_per_epoch, 'train', epoch, batch_idx+1, batch)
+        self.image_logger.do_log(self.l_d_model, self.num_steps_per_epoch, 'train', epoch, batch_idx+1, batch, )
         loss, loss_dict = self.feed_forward(batch)
         self.backpropagation(epoch, batch_idx, loss)
 
