@@ -79,8 +79,6 @@ def _log_api_usage_once(obj: Any) -> None:
         name = obj.__name__
     torch._C._log_api_usage_once(f"{obj.__module__}.{name}")
 
-
-
 @torch.no_grad()
 def make_grid(
     tensor: Union[torch.Tensor, List[torch.Tensor]],
@@ -189,6 +187,12 @@ def make_grid(
             ).copy_(tensor[k])
             k = k + 1
     return grid
+
+
+def log_loss_dict(loss_dict, logger):
+    for key in loss_dict.keys():
+        logger.info(f'{key}: {loss_dict[key].item()}')
+
 
 if __name__ == '__main__':
     pass

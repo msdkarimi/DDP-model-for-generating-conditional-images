@@ -6,6 +6,7 @@ from latent_ddpm_trainer.lr_scheduler import build_scheduler
 from utils.base import LogHelper
 from modules.image_logger import build_image_logger
 import traceback
+from utils.utils import log_loss_dict
 
 
 class Trainer(LogHelper):
@@ -100,10 +101,12 @@ class Trainer(LogHelper):
             _a_batch = iter(self.train_data_loader).__next__()
             self.logger.info('data loaded works!')
             loss, loss_dict = self.feed_forward(_a_batch)
+            log_loss_dict(loss_dict, self.logger)
             self.logger.info('feed forward of ldm works!')
             self.image_logger.do_log(self.l_d_model, self.num_steps_per_epoch, 'validation', -1, 1, _a_batch)
             self.logger.info('image logger of ldm works!')
             loss_dict_no_ema, loss_dict_ema = self.validate_one_batch(_a_batch)
+            log_loss_dict(loss_dict_ema, self.logger)
             self.logger.info('ema model works!')
             return True
         except Exception as e:
