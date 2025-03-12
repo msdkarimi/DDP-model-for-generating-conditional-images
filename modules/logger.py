@@ -37,4 +37,4 @@ def build_logger(output_dir, name=''):
     file_handler.setFormatter(logging.Formatter(fmt=fmt, datefmt='%Y-%m-%d %H:%M:%S'))
     logger.addHandler(file_handler)
 
-    return logger
+    return logger, _run_name

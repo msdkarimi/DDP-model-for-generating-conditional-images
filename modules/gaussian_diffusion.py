@@ -148,8 +148,8 @@ class GaussianDiffusion(nn.Module):
     @contextmanager
     def ema_scope(self, context=None): # TODO EMA
         if self.use_ema:
-            self.model_ema.store(self.model.parameters())
-            self.model_ema.copy_to(self.model)
+            self.model_ema.store(self.model.parameters()) # saving the current training parameters, allowing them to be restored later.
+            self.model_ema.copy_to(self.model) # replacing the model's weights with the EMA weights
             if context is not None:
                 print(f"{context}: Switched to EMA weights")
         try:

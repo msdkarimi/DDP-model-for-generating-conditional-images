@@ -67,8 +67,10 @@ def get_diffusion_config():
     diffusion_configs.loss_type = 'l2'
     diffusion_configs.first_stage_key = 'image'
     # diffusion_configs.cond_stage_key = 'caption'
-    diffusion_configs.image_size = 64
-    diffusion_configs.channels = 3
+    # diffusion_configs.image_size = 64
+    diffusion_configs.image_size = 32
+    # diffusion_configs.channels = 3
+    diffusion_configs.channels = 4
     # diffusion_configs.conditioning_key = 'crossattn'
     diffusion_configs.monitor = 'val / loss_simple_ema'
     diffusion_configs.use_ema = True
@@ -171,10 +173,9 @@ def get_conditioning_config():
 def get_image_logger_config():
     image_logger_configs = ConfigDict()
     image_logger_configs.frequency = 10000
-    image_logger_configs.save_dir = 'image_logger'
     image_logger_configs.rescale = True
     image_logger_configs.log_on = 'step'
-    image_logger_configs.clamp = 'step'
+    image_logger_configs.clamp = True
     return image_logger_configs
 
 

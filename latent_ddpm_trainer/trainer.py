@@ -34,7 +34,7 @@ class Trainer(LogHelper):
         self.train_data_loader = train_data_loader
         self.val_data_loader = val_data_loader
 
-        self.logger = build_logger(logger_name)
+        self.logger, logger_folder = build_logger(logger_name)
         l_d_model_name = latent_diffusion_config.name
         del latent_diffusion_config.name
         self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -44,7 +44,7 @@ class Trainer(LogHelper):
         self.lr_scheduler = build_scheduler(lr_scheduler_config, self.optimizer, self.num_steps_per_epoch, n_epochs)
         self.n_epochs = n_epochs
         # self.image_logger = build_image_logger(config_image_logger)
-        self.image_logger = build_image_logger(image_logger_config)
+        self.image_logger = build_image_logger(logger_name, logger_folder, image_logger_config)
         self.fp_16 = mix_precision
 
     def train_one_step(self, epoch, batch_idx, batch):
@@ -52,7 +52,7 @@ class Trainer(LogHelper):
         self.forward_backward_step(epoch, batch_idx, batch)
 
     def forward_backward_step(self, epoch, batch_idx, batch):
-        self.image_logger.do_log(self.l_d_model, 'train', epoch, batch_idx, batch)
+        self.image_logger.do_log(self.l_d_model, self.num_steps_per_epoch, 'train', epoch, batch_idx+1, batch)
         loss, loss_dict = self.feed_forward(batch)
         self.backpropagation(epoch, batch_idx, loss)
 
@@ -84,7 +84,7 @@ class Trainer(LogHelper):
         self.l_d_model.model.eval()
         for idx, batch in enumerate(self.val_data_loader):# TODO use tqdm
             loss_dict_no_ema, loss_dict_ema = self.validate_one_batch(batch)
-            self.image_logger.do_log(self.l_d_model, 'validation', epoch, batch_idx, batch)
+            self.image_logger.do_log(self.l_d_model, self.num_steps_per_epoch, 'validation', epoch, batch_idx, batch)
             # TODO log the output
 
     def run(self):
@@ -96,8 +96,10 @@ class Trainer(LogHelper):
         try:
             _a_batch = iter(self.train_data_loader).__next__()
             loss, loss_dict = self.feed_forward(_a_batch)
-            self.image_logger.do_log(self.l_d_model, 'validation', -1, 1, _a_batch)
-            # model, mode, epoch, batch_idx, names
+            self.image_logger.do_log(self.l_d_model, self.num_steps_per_epoch, 'validation', -1, 1, _a_batch)
+            loss_dict_no_ema, loss_dict_ema = self.validate_one_batch(_a_batch)
+
+
 
             return True
         except Exception as e:

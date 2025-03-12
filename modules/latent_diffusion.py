@@ -139,7 +139,7 @@ class LatentDiffusion(GaussianDiffusion):
                       mask=None, x0=None, img_callback=None, start_T=None,
                       log_every_t=None):
         """
-        Generate samples from the model
+        Generate samples from the model, Returns only x_0, Use Case: Standard inference,
         """
 
         if not log_every_t:
@@ -157,10 +157,10 @@ class LatentDiffusion(GaussianDiffusion):
 
         if start_T is not None:
             timesteps = min(timesteps, start_T)
-        iterator = tqdm(reversed(range(0, timesteps)), desc='Sampling t', total=timesteps) if verbose else reversed(
+        iterator = tqdm(reversed(range(0, timesteps)), desc='Sampling <t>', total=timesteps) if verbose else reversed(
             range(0, timesteps))
 
-        if mask is not None:
+        if mask is not None: # TODO what is mask for
             assert x0 is not None
             assert x0.shape[2:3] == mask.shape[2:3]  # spatial size has to match
 
@@ -311,14 +311,10 @@ class LatentDiffusion(GaussianDiffusion):
     def decode_first_stage(self, z, predict_cids=False, force_not_quantize=False):
         z = 1. / self.scale_factor * z
         _x_rec = self.first_stage_model.decode(z) # was this
-
-        _x_rec = torch.clamp((_x_rec + 1.0) / 2.0, min=0.0, max=1.0)
-        # return 255. * rearrange(_x_rec, 'b c h w -> b h w c')
-        return 255. * _x_rec
-
-
-
-
+        return _x_rec
+        # _x_rec = torch.clamp((_x_rec + 1.0) / 2.0, min=0.0, max=1.0) # TODO remove this part because is done later in the image logger
+        # # return 255. * rearrange(_x_rec, 'b c h w -> b h w c')
+        # return 255. * _x_rec
 
 
     def get_first_stage_encoding(self, encoder_posterior):
@@ -348,7 +344,7 @@ class LatentDiffusion(GaussianDiffusion):
                               score_corrector=None, corrector_kwargs=None, batch_size=None, x_T=None, start_T=None,
                               log_every_t=None):
         """
-        Generate samples from the model and yield intermediate samples from each timestep of diffusion.
+        Generate samples from the model and yield intermediate samples from each timestep of diffusion. return all x_t to x_0, Use Case: Debugging, visualization, and step-by-step analysis
         """
         if not log_every_t:
             log_every_t = self.log_every_t
@@ -459,7 +455,7 @@ class LatentDiffusion(GaussianDiffusion):
         if sample:
             with self.ema_scope('plotting'):
                 samples, z_denoise_row = self.sample_log(cond=c, batch_size=N, ddim=use_ddim,
-                                                         ddim_steps=ddim_steps, eta=ddim_eta) # che ck for the return value
+                                                         ddim_steps=ddim_steps, eta=ddim_eta) # che ck for the return value, z_denoise_row is intermediates from T to 0,  return_x0=True
                 x_samples = self.decode_first_stage(samples)
                 _log["samples"] = x_samples
                 if plot_denoise_rows:
@@ -470,8 +466,8 @@ class LatentDiffusion(GaussianDiffusion):
             with self.ema_scope("Plotting Progressives"):
                 img, progressives = self.progressive_denoising(c,
                                                                shape=(self.channels, self.image_size, self.image_size),
-                                                               batch_size=N)
-            prog_row = self._get_denoise_row_from_list(progressives, desc="Progressive Generation")
+                                                               batch_size=N ) # TODO to use ?  batch_size=N
+            prog_row = self._get_denoise_row_from_list(progressives, desc="Progressive Generation Grid Handler")
             _log["progressive_row"] = prog_row
 
         return _log
@@ -494,9 +490,9 @@ class LatentDiffusion(GaussianDiffusion):
 
 
     def validation_step(self, batch): # TODO take care of the validation forward and EMA
-        _, loss_dict_no_ema = self.feed_forward(batch)
+        _, loss_dict_no_ema = self(batch)
         with self.ema_scope():
-            _, loss_dict_ema = self.feed_forward(batch)
+            _, loss_dict_ema = self(batch)
             loss_dict_ema = {key + '_ema': loss_dict_ema[key] for key in loss_dict_ema}
 
         return loss_dict_no_ema, loss_dict_ema

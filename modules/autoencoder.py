@@ -214,7 +214,7 @@ if __name__ == '__main__':
         # dec, z = model(image)
         # # # torch.save(z, 'z_2.chpt')
         # #
-        z = torch.load('x_noisy.chpt')
+        z = torch.load('cliped_recon.ckpt')
         z = (1/0.18215) * z
         z = z.cuda()
         dec = model.decode(z)
@@ -225,4 +225,4 @@ if __name__ == '__main__':
 
         x_sample = 255. * rearrange(dec, 'c h w -> h w c')
         img = Image.fromarray(x_sample.astype(np.uint8))
-        img.save( f"test_2.png")
+        img.save( f"test.png")
