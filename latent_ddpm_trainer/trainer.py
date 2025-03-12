@@ -5,6 +5,7 @@ from modules.latent_diffusion import LatentDiffusion
 from latent_ddpm_trainer.lr_scheduler import build_scheduler
 from utils.base import LogHelper
 from modules.image_logger import build_image_logger
+import traceback
 
 
 class Trainer(LogHelper):
@@ -104,12 +105,10 @@ class Trainer(LogHelper):
             self.logger.info('image logger of ldm works!')
             loss_dict_no_ema, loss_dict_ema = self.validate_one_batch(_a_batch)
             self.logger.info('ema model works!')
-
-
-
             return True
         except Exception as e:
             self.logger.error(e)
+            self.logger.error(traceback.format_exc())
             return False
 
     def init_train(self):
