@@ -168,9 +168,19 @@ def get_conditioning_config():
     # conditioning_configs.n_layer = 32
     return conditioning_configs
 
+def get_image_logger_config():
+    image_logger_configs = ConfigDict()
+    image_logger_configs.frequency = 10000
+    image_logger_configs.save_dir = 'image_logger'
+    image_logger_configs.rescale = True
+    image_logger_configs.log_on = 'step'
+    image_logger_configs.clamp = 'step'
+    return image_logger_configs
+
+
 
 def get_all_config():
-    return get_unet_config(), get_diffusion_config(), get_first_stage_config(), get_conditioning_config(), get_latent_diffusion_config(), get_lr_scheduler_config()
+    return get_unet_config(), get_diffusion_config(), get_first_stage_config(), get_conditioning_config(), get_latent_diffusion_config(), get_image_logger_config(), get_lr_scheduler_config()
 
 if __name__ == '__main__':
     print(get_all_config())

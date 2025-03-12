@@ -7,8 +7,11 @@ from utils.ldm_util import default
 from einops import rearrange, repeat
 from utils.build import builder, register_model
 from modules.distributions import DiagonalGaussianDistribution
-from utils.utils import count_params
+from utils.utils import count_params,log_txt_as_img, make_grid
 from tqdm import tqdm
+from modules.ddim import DDIMSampler
+
+
 
 __conditioning_keys__ = {'concat': 'c_concat',
                          'crossattn': 'c_crossattn',
@@ -24,6 +27,7 @@ class LatentDiffusion(GaussianDiffusion):
                  cond_stage_forward=None,
                  scale_factor=1.0,
                  scale_by_std=False,
+                 log_every_t=50
                  ):
         vae_name = kwargs_autoencoder.name
         del kwargs_autoencoder.name
@@ -46,6 +50,8 @@ class LatentDiffusion(GaussianDiffusion):
         # count_params(self.model, verbose=True)
         # count_params(self.cond_stage_model, verbose=True)
         # count_params(self.first_stage_model, verbose=True)
+
+        self.log_every_t = log_every_t
 
         self.cond_stage_trainable = cond_stage_trainable
         self.cond_stage_key = cond_stage_key
@@ -75,7 +81,9 @@ class LatentDiffusion(GaussianDiffusion):
         self.cond_ids[:self.num_timesteps_cond] = ids
 
     def p_mean_variance(self, x, c, t,
-                        clip_denoised: bool, quantize_denoised=False, corrector_kwargs=None):
+                        clip_denoised: bool,
+                        quantize_denoised=False,
+                        corrector_kwargs=None):
         """
         Apply the model to get p(x_{t-1} | x_t), as well as a prediction of
         the initial x, x_0.
@@ -85,6 +93,7 @@ class LatentDiffusion(GaussianDiffusion):
         model_output = self.model(x, t, c)
 
         if self.parameterization == 'eps':
+            # here we get the x_0
             x_recon = self.predict_start_from_noise(x, t=t, noise=model_output)
         else:
             raise NotImplementedError (f'Currently only supports {self.parameterization} parameterization')
@@ -118,7 +127,10 @@ class LatentDiffusion(GaussianDiffusion):
         # no noise when t == 0
         nonzero_mask = (1 - (t == 0).float()).reshape(b, *((1,) * (len(x.shape) - 1)))
 
-        return model_mean + nonzero_mask * (0.5 * model_log_variance).exp() * noise
+        if return_x0:
+            return model_mean + nonzero_mask * (0.5 * model_log_variance).exp() * noise, x_recon
+        else:
+            return model_mean + nonzero_mask * (0.5 * model_log_variance).exp() * noise
 
 
     @torch.no_grad()
@@ -265,10 +277,18 @@ class LatentDiffusion(GaussianDiffusion):
                 cond_key = self.cond_stage_key
             if cond_key != self.first_stage_key:
                 if cond_key in ['caption', 'coordinates_bbox']:
-                    c = batch[cond_key] # this
+                    cx = batch[cond_key] # this
                     if bs is not None:
-                        c = c[:bs]
-                    out = [z, c]  # then this
+                        cx = cx[:bs]
+                    out = [z, cx]  # then this
+                    if return_first_stage_outputs:
+                        # this will be used in  the logging phase
+                        xrec = self.decode_first_stage(z)
+                        out.extend([x, xrec])
+                    if force_c_encode:
+                        # this will be used in  the logging phase
+                        c = self.get_learned_conditioning(cx)
+                        out.append(c)
                     return out
                 else:
                     raise NotImplementedError(f'only supports caption conditioning')
@@ -286,6 +306,20 @@ class LatentDiffusion(GaussianDiffusion):
     @torch.no_grad()
     def encode_first_stage(self, x):
         return self.first_stage_model.encode(x)
+
+    @torch.no_grad()
+    def decode_first_stage(self, z, predict_cids=False, force_not_quantize=False):
+        z = 1. / self.scale_factor * z
+        _x_rec = self.first_stage_model.decode(z) # was this
+
+        _x_rec = torch.clamp((_x_rec + 1.0) / 2.0, min=0.0, max=1.0)
+        # return 255. * rearrange(_x_rec, 'b c h w -> b h w c')
+        return 255. * _x_rec
+
+
+
+
+
 
     def get_first_stage_encoding(self, encoder_posterior):
         if isinstance(encoder_posterior, DiagonalGaussianDistribution):
@@ -308,16 +342,168 @@ class LatentDiffusion(GaussianDiffusion):
             raise NotImplementedError(f'only supports pretrained model for conditioning')
         return c
 
-    def log_images(self):
-        pass # TODO handle this part of the pipeline
+    @torch.no_grad()
+    def progressive_denoising(self, cond, shape, verbose=True, callback=None, quantize_denoised=False,
+                              img_callback=None, mask=None, x0=None, temperature=1., noise_dropout=0.,
+                              score_corrector=None, corrector_kwargs=None, batch_size=None, x_T=None, start_T=None,
+                              log_every_t=None):
+        """
+        Generate samples from the model and yield intermediate samples from each timestep of diffusion.
+        """
+        if not log_every_t:
+            log_every_t = self.log_every_t
+        timesteps = self.num_timesteps
+        if batch_size is not None:
+            b = batch_size if batch_size is not None else shape[0]
+            shape = [batch_size] + list(shape)
+        else:
+            b = batch_size = shape[0]
+        if x_T is None:
+            img = torch.randn(shape, device=self.device)
+        else:
+            img = x_T
+        intermediates = []
+        if cond is not None:
+            if isinstance(cond, dict):
+                cond = {key: cond[key][:batch_size] if not isinstance(cond[key], list) else
+                list(map(lambda x: x[:batch_size], cond[key])) for key in cond}
+            else:
+                cond = [c[:batch_size] for c in cond] if isinstance(cond, list) else cond[:batch_size]
+
+        if start_T is not None:
+            timesteps = min(timesteps, start_T)
+        iterator = tqdm(reversed(range(0, timesteps)), desc='Progressive Generation',
+                        total=timesteps) if verbose else reversed(
+            range(0, timesteps))
+        if type(temperature) == float:
+            temperature = [temperature] * timesteps
+
+        for i in iterator:
+            ts = torch.full((b,), i, device=self.device, dtype=torch.long)
+            if self.shorten_cond_schedule:
+                assert self.model.conditioning_key != 'hybrid'
+                tc = self.cond_ids[ts].to(cond.device)
+                cond = self.q_sample(x_start=cond, t=tc, noise=torch.randn_like(cond))
+
+            img, x0_partial = self.p_sample(img, cond, ts,
+                                            clip_denoised=self.clip_denoised,
+                                            quantize_denoised=quantize_denoised, return_x0=True,
+                                            temperature=temperature[i], noise_dropout=noise_dropout,
+                                            score_corrector=score_corrector, corrector_kwargs=corrector_kwargs)
+            if mask is not None:
+                assert x0 is not None
+                img_orig = self.q_sample(x0, ts)
+                img = img_orig * mask + (1. - mask) * img
+
+            if i % log_every_t == 0 or i == timesteps - 1:
+                intermediates.append(x0_partial)
+            # if callback: callback(i)
+            # if img_callback: img_callback(img, i)
+        return img, intermediates
+
+    def _get_denoise_row_from_list(self, samples, desc='', force_no_decoder_quantization=False):
+        # for visualization purposes only
+        denoise_row = []
+        for zd in tqdm(samples, desc=desc):
+            denoise_row.append(self.decode_first_stage(zd.to(self.device),
+                                                            force_not_quantize=force_no_decoder_quantization))
+        n_imgs_per_row = len(denoise_row)
+        denoise_row = torch.stack(denoise_row)  # n_log_step, n_row, C, H, W
+        denoise_grid = rearrange(denoise_row, 'n b c h w -> b n c h w')
+        denoise_grid = rearrange(denoise_grid, 'b n c h w -> (b n) c h w')
+        denoise_grid = make_grid(denoise_grid, nrow=n_imgs_per_row)
+        return denoise_grid
+
+    def log_images(self, batch, N=8, n_row=2, sample=True, ddim_steps=None, ddim_eta=1., return_keys=None,
+                   quantize_denoised=True, inpaint=True, plot_denoise_rows=False, plot_progressive_rows=True,
+                   plot_diffusion_rows=True, **kwargs):
+        use_ddim = ddim_steps is not None
+        _log = dict()
+
+        z, xc, x, xrec, c = self.get_input(batch, self.first_stage_key,
+                                           return_first_stage_outputs=True,
+                                           force_c_encode=True,
+                                           return_original_cond=True,
+                                           )
+
+        N = batch[self.first_stage_key].shape[0]
+        n_row = min(n_row, N)
+        _log['inputs'] = x
+        _log['reconstructions'] = xrec
+
+        if self.cond_stage_key == "caption":
+            xc = log_txt_as_img((x.shape[2], x.shape[3]), batch["caption"])
+            _log["conditionings"] = xc
+
+        if plot_diffusion_rows:
+            """
+            get intermediates of the noisy images of diffusion model, diffusion forward  
+            """
+            _diffused_images = list()
+            z_start = z[:n_row]
+            for t in range(self.num_timesteps):
+                if t % self.log_every_t == 0 or t == self.num_timesteps - 1: # TODO check if i need to differentiate between the log_every
+                    t = repeat(torch.tensor([t]), '1 -> b', b=n_row)
+                    t = t.to(self.device).long()
+                    noise = torch.randn_like(z_start)
+                    z_noisy = self.q_sample(x_start=z_start, t=t, noise=noise)
+                    _diffused_images.append(self.decode_first_stage(z_noisy))
+
+
+            diffusion_row = torch.stack(_diffused_images)  # n_log_step, n_row, C, H, W
+            diffusion_grid = rearrange(diffusion_row, 'n b c h w -> b n c h w')
+            diffusion_grid = rearrange(diffusion_grid, 'b n c h w -> (b n) c h w')
+            diffusion_grid = make_grid(diffusion_grid, nrow=diffusion_row.shape[0])
+            _log["diffused_images"] = diffusion_grid
+
+        if sample:
+            with self.ema_scope('plotting'):
+                samples, z_denoise_row = self.sample_log(cond=c, batch_size=N, ddim=use_ddim,
+                                                         ddim_steps=ddim_steps, eta=ddim_eta) # che ck for the return value
+                x_samples = self.decode_first_stage(samples)
+                _log["samples"] = x_samples
+                if plot_denoise_rows:
+                    denoise_grid = self._get_denoise_row_from_list(z_denoise_row)
+                    _log["denoise_row"] = denoise_grid
+
+        if plot_progressive_rows:
+            with self.ema_scope("Plotting Progressives"):
+                img, progressives = self.progressive_denoising(c,
+                                                               shape=(self.channels, self.image_size, self.image_size),
+                                                               batch_size=N)
+            prog_row = self._get_denoise_row_from_list(progressives, desc="Progressive Generation")
+            _log["progressive_row"] = prog_row
+
+        return _log
+
+
+    @torch.no_grad()
+    def sample_log(self,cond,batch_size,ddim, ddim_steps,**kwargs):
+
+        if ddim:
+            ddim_sampler = DDIMSampler(self)
+            shape = (self.channels, self.image_size, self.image_size)
+            samples, intermediates =ddim_sampler.sample(ddim_steps,batch_size,
+                                                        shape,cond,verbose=False,**kwargs)
+
+        else:
+            samples, intermediates = self.sample(cond=cond, batch_size=batch_size,
+                                                 return_intermediates=True,**kwargs)
+
+        return samples, intermediates
+
 
     def validation_step(self, batch): # TODO take care of the validation forward and EMA
         _, loss_dict_no_ema = self.feed_forward(batch)
         with self.ema_scope():
             _, loss_dict_ema = self.feed_forward(batch)
             loss_dict_ema = {key + '_ema': loss_dict_ema[key] for key in loss_dict_ema}
-        self.log_dict(loss_dict_no_ema, prog_bar=False, logger=True, on_step=False, on_epoch=True)
-        self.log_dict(loss_dict_ema, prog_bar=False, logger=True, on_step=False, on_epoch=True)
+
+        return loss_dict_no_ema, loss_dict_ema
+        # self.log_dict(loss_dict_no_ema, prog_bar=False, logger=True, on_step=False, on_epoch=True)
+        # self.log_dict(loss_dict_ema, prog_bar=False, logger=True, on_step=False, on_epoch=True)
+
+
 @register_model
 def latent_diffusion_constractor(*args, **kwargs_latent_diffusion):
     return LatentDiffusion(*args, **kwargs_latent_diffusion)

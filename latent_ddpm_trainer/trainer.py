@@ -3,15 +3,18 @@ from utils.build import builder, register_model
 from modules.logger import build_logger
 from modules.latent_diffusion import LatentDiffusion
 from latent_ddpm_trainer.lr_scheduler import build_scheduler
+from utils.base import LogHelper
+from modules.image_logger import build_image_logger
 
 
-class Trainer(object):
+class Trainer(LogHelper):
     def __init__(self,
                  unet_configs,
                  gaussian_diff_config,
                  vae_config,
                  text_embeder_config,
                  latent_diffusion_config,
+                 image_logger_config,
                  lr_scheduler_config,
                  train_data_loader,
                  val_data_loader,
@@ -40,6 +43,8 @@ class Trainer(object):
         self.optimizer = torch.optim.AdamW(list(self.l_d_model.model.parameters()), lr=optimizer_base_lr) # TODO optimizer to do task
         self.lr_scheduler = build_scheduler(lr_scheduler_config, self.optimizer, self.num_steps_per_epoch, n_epochs)
         self.n_epochs = n_epochs
+        # self.image_logger = build_image_logger(config_image_logger)
+        self.image_logger = build_image_logger(image_logger_config)
         self.fp_16 = mix_precision
 
     def train_one_step(self, epoch, batch_idx, batch):
@@ -47,6 +52,7 @@ class Trainer(object):
         self.forward_backward_step(epoch, batch_idx, batch)
 
     def forward_backward_step(self, epoch, batch_idx, batch):
+        self.image_logger.do_log(self.l_d_model, 'train', epoch, batch_idx, batch)
         loss, loss_dict = self.feed_forward(batch)
         self.backpropagation(epoch, batch_idx, loss)
 
@@ -67,22 +73,43 @@ class Trainer(object):
             # TODO needs to handle the case that mp. returns false
             raise NotImplementedError
 
+    def validate_one_batch(self, batch):
+        # loss_dict_no_ema, loss_dict_ema = self.l_d_model.validation_step(batch)
+        return self.l_d_model.validation_step(batch)
+
+
+
     @torch.no_grad()
-    def validation(self):
+    def validation(self, epoch, batch_idx):
+        self.l_d_model.model.eval()
         for idx, batch in enumerate(self.val_data_loader):# TODO use tqdm
-            self.l_d_model.validation_step(batch)
-
-
+            loss_dict_no_ema, loss_dict_ema = self.validate_one_batch(batch)
+            self.image_logger.do_log(self.l_d_model, 'validation', epoch, batch_idx, batch)
+            # TODO log the output
 
     def run(self):
+        if self.check_pipeline():
+            self.init_train()
+
+    @torch.no_grad()
+    def check_pipeline(self):
+        try:
+            _a_batch = iter(self.train_data_loader).__next__()
+            loss, loss_dict = self.feed_forward(_a_batch)
+            self.image_logger.do_log(self.l_d_model, 'validation', -1, 1, _a_batch)
+            # model, mode, epoch, batch_idx, names
+
+            return True
+        except Exception as e:
+            self.logger.error(e)
+            return False
+
+    def init_train(self):
         for epoch in range(0, self.n_epochs):
-            for idx, a_batch in enumerate(self.train_data_loader):# TODO use tqdm
-                # {'image': images, 'caption': captions}
-
-                self.train_one_step(epoch, idx, a_batch)
-
-                if (epoch * idx + idx) % 1000 == 0: # TODO handle the log_every in config
-                    self.validation()
+            for batch_idx, a_batch in enumerate(self.train_data_loader):# TODO use tqdm
+                self.train_one_step(epoch, batch_idx, a_batch)
+                if (epoch * batch_idx + batch_idx) % 1000 == 0: # TODO handle the log_every in config
+                    self.validation(epoch, batch_idx)
 
 
 @register_model

@@ -146,7 +146,7 @@ class GaussianDiffusion(nn.Module):
         assert not torch.isnan(self.lvlb_weights).all()
 
     @contextmanager
-    def ema_scope(self, context=None):
+    def ema_scope(self, context=None): # TODO EMA
         if self.use_ema:
             self.model_ema.store(self.model.parameters())
             self.model_ema.copy_to(self.model)
