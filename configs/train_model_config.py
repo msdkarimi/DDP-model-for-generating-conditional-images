@@ -16,7 +16,7 @@ def get_config_trainer():
     trainer_configs.optimizer_base_lr = 5e-4
     trainer_configs.optimizer_weight_decay = -1 # TODO update
     trainer_configs.optimizer_betas = -1 # TODO update
-    trainer_configs.n_epochs = 200  # TODO update
+    trainer_configs.n_epochs = 200
 
 
 
@@ -44,17 +44,12 @@ def get_lr_scheduler_config():
     lr_scheduler_configs.lr_min_rate = .01  # to multiply to decay the LR
     return lr_scheduler_configs
 
-def get_ddpm_config():
-    ddpm_configs = ConfigDict()
-    # TODO add ddpm_configs
-    return ddpm_configs
 
 def get_dataloader_config():
     dataloader_configs = ConfigDict()
     dataloader_configs.batch_size = 1
     dataloader_configs.num_workers = 0
     dataloader_configs.image_size = 256
-    # TODO add dataloader_configs
     return dataloader_configs
 
 def get_diffusion_config():
@@ -172,7 +167,7 @@ def get_conditioning_config():
 
 def get_image_logger_config():
     image_logger_configs = ConfigDict()
-    image_logger_configs.frequency = 10000
+    image_logger_configs.frequency = 1000
     image_logger_configs.rescale = True
     image_logger_configs.log_on = 'step'
     image_logger_configs.clamp = True
@@ -188,7 +183,6 @@ def get_log_image_kwargs():
     image_logger_configs.ddim_steps = None
     image_logger_configs.plot_denoise_rows = False
     return image_logger_configs
-
 
 
 def get_all_config():

@@ -259,7 +259,6 @@ class GaussianDiffusion(nn.Module):
         x = batch[k]
         if len(x.shape) == 3:
             x = x[..., None]
-        # x = rearrange(x, 'b h w c -> b c h w') # TODO make sure of commenting this part, because the image already has the required shape
         x = x.to(memory_format=torch.contiguous_format).float()
         return x
 

@@ -13,7 +13,7 @@ class DareDataset(Dataset):
         self.root_path = root_path
         self.mode = mode
         self.transform = transform
-        self.dataset = self.read_dataset()  # TODO read dataset file via a function
+        self.dataset = self.read_dataset()
 
     def __len__(self):
         return len(self.dataset)

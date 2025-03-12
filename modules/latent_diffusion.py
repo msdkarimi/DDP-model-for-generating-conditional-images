@@ -298,7 +298,6 @@ class LatentDiffusion(GaussianDiffusion):
     def forward(self, batch):
         x, c = self.get_input(batch, self.first_stage_key)
         loss, loss_dict = self._forward_to_net(x, c)
-        # TODO Do logging here
 
         return loss, loss_dict
 
@@ -312,10 +311,6 @@ class LatentDiffusion(GaussianDiffusion):
         z = 1. / self.scale_factor * z
         _x_rec = self.first_stage_model.decode(z) # was this
         return _x_rec
-        # _x_rec = torch.clamp((_x_rec + 1.0) / 2.0, min=0.0, max=1.0) # TODO remove this part because is done later in the image logger
-        # # return 255. * rearrange(_x_rec, 'b c h w -> b h w c')
-        # return 255. * _x_rec
-
 
     def get_first_stage_encoding(self, encoder_posterior):
         if isinstance(encoder_posterior, DiagonalGaussianDistribution):
@@ -467,7 +462,7 @@ class LatentDiffusion(GaussianDiffusion):
             with self.ema_scope("Plotting Progressives"):
                 img, progressives = self.progressive_denoising(c,
                                                                shape=(self.channels, self.image_size, self.image_size),
-                                                               batch_size=N ) # TODO to use ?  batch_size=N
+                                                               batch_size=N)
             prog_row = self._get_denoise_row_from_list(progressives, desc="Progressive Generation Grid Handler")
             _log["progressive_row"] = prog_row
 
@@ -490,7 +485,7 @@ class LatentDiffusion(GaussianDiffusion):
         return samples, intermediates
 
 
-    def validation_step(self, batch): # TODO take care of the validation forward and EMA
+    def validation_step(self, batch):
         _, loss_dict_no_ema = self(batch)
         with self.ema_scope():
             _, loss_dict_ema = self(batch)

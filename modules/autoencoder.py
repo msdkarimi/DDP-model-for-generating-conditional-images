@@ -160,7 +160,7 @@ class AutoencoderKL(nn.Module):
 
 class IdentityFirstStage(torch.nn.Module):
     def __init__(self, *args, vq_interface=False, **kwargs):
-        self.vq_interface = vq_interface  # TODO: Should be true by default but check to not break older stuff
+        self.vq_interface = vq_interface
         super().__init__()
 
     def encode(self, x, *args, **kwargs):

@@ -27,7 +27,7 @@ def build_scheduler(config, optimizer, n_iter_per_epoch, n_epochs):
 
         return lr_scheduler
     else:
-        raise NotImplementedError(f"Scheduler: {config['TRAIN']['LR_SCHEDULER']['NAME']}")
+        raise NotImplementedError(f"Scheduler: {config.name.lower()} is not implemented yet!")
 
 
 class LinearLRScheduler(Scheduler):

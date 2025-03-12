@@ -14,16 +14,16 @@ def count_params(model, verbose=False):
     return total_params
 
 
-def get_image_transform(mode):
+def get_image_transform(mode, img_size):
     if mode == 'train':
         return transforms.Compose([
-                                        transforms.Resize((256, 256)),
+                                        transforms.Resize((img_size, img_size)),
                                         transforms.ToTensor(),
                                         transforms.Normalize(mean=[0.5], std=[0.5])  # This scales [0,1] to [-1,1]
                                     ])
     elif mode == 'val':
         return transforms.Compose([
-                                        transforms.Resize((256, 256)),
+                                        transforms.Resize((img_size, img_size)),
                                         transforms.ToTensor(),
                                         transforms.Normalize(mean=[0.5], std=[0.5])  # This scales [0,1] to [-1,1]
                                     ])
