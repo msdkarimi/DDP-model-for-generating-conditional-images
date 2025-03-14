@@ -14,6 +14,7 @@ class FrozenCLIPEmbedder(AbstractEncoder):
     # def __init__(self, version="openai/clip-vit-large-patch14", device="cuda", max_length=77):
     def __init__(self, version="../pretrained/clip_model", device="cuda", max_length=77):
         super().__init__()
+        print('clip model loaded from {}'.format(version))
         self.tokenizer = CLIPTokenizer.from_pretrained(version)
         self.transformer = CLIPTextModel.from_pretrained(version)
         self.device = device
