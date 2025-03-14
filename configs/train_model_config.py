@@ -42,7 +42,7 @@ def get_lr_scheduler_config():
 
 def get_dataloader_config():
     dataloader_configs = ConfigDict()
-    dataloader_configs.batch_size = 1
+    dataloader_configs.batch_size = 4
     dataloader_configs.num_workers = 0
     dataloader_configs.image_size = 256
     return dataloader_configs
