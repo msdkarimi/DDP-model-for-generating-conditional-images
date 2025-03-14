@@ -55,8 +55,10 @@ class GaussianDiffusion(nn.Module):
         self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
         # self.model = builder(unet_name, **unet_config).to(self.device)
         self.model = builder(unet_name, **unet_config)
-        # count_params(self.model, verbose=True)
+        count_params(self.model, verbose=True)
         # print(self.model)
+
+        self.initialize_weights()
 
 
         assert self.model is not None , 'there is problem with Unet model initialization!'
@@ -90,6 +92,19 @@ class GaussianDiffusion(nn.Module):
         self.logvar = torch.full(fill_value=logvar_init, size=(self.num_timesteps,)).to(self.device)
         if self.learn_logvar:
             self.logvar = nn.Parameter(self.logvar, requires_grad=True)
+
+    def initialize_weights(self):
+        for module in self.model.modules():
+            if isinstance(module, nn.Conv2d):
+                # Xavier for Conv2d
+                nn.init.xavier_uniform_(module.weight, gain=nn.init.calculate_gain('relu'))
+                if module.bias is not None:
+                    nn.init.zeros_(module.bias)
+            elif isinstance(module, nn.Linear):
+                # Xavier for Linear
+                nn.init.xavier_uniform_(module.weight, gain=nn.init.calculate_gain('relu'))
+                if module.bias is not None:
+                    nn.init.zeros_(module.bias)
 
     def register_schedule(self, given_betas=None, beta_schedule="linear", timesteps=1000,
                           linear_start=1e-4, linear_end=2e-2, cosine_s=8e-3):

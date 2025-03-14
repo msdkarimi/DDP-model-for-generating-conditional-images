@@ -21,7 +21,7 @@ def get_image_transform(mode, img_size):
                                         transforms.ToTensor(),
                                         transforms.Normalize(mean=[0.5], std=[0.5])  # This scales [0,1] to [-1,1]
                                     ])
-    elif mode == 'val':
+    elif mode == 'validation':
         return transforms.Compose([
                                         transforms.Resize((img_size, img_size)),
                                         transforms.ToTensor(),
@@ -189,10 +189,47 @@ def make_grid(
     return grid
 
 
-def log_dict(loss_dict, logger):
-    _log = "\t".join(f"{key}: {loss_dict[key].item()}" for key in loss_dict)
+def log_dict(loss_dict, logger, batch_idx=None, total_batches=None, epoch=None, avg_loss=None):
+
+    _log = "\t".join(f"{key}: {loss_dict[key]}" for key in loss_dict)
+    if batch_idx is not None and epoch is None:
+        _log = f'batch:[{batch_idx}/{total_batches}]\t' + _log
+    elif batch_idx is not None and epoch is not None:
+        _log = f'epoch:[{epoch}]/batch:[{batch_idx}/{total_batches}]\t' + _log
+
+    _avg = avg_loss if avg_loss is not None else -10.
+    _log = f'avg_loss[{_avg:.4f}]\t' + _log
     logger.info(_log)
 
+
+class AverageMeter:
+    """Computes and stores the average and current value"""
+    def __init__(self):
+        self.reset()
+
+    def reset(self):
+        self.val = 0
+        self.avg = 0
+        self.sum = 0
+        self.count = 0
+
+    def update(self, val, n=1):
+        self.val = val
+        self.sum += val * n
+        self.count += n
+        self.avg = self.sum / self.count
+
+def get_grad_norm(parameters, norm_type=2):
+    if isinstance(parameters, torch.Tensor):
+        parameters = [parameters]
+    parameters = list(filter(lambda p: p.grad is not None, parameters))
+    norm_type = float(norm_type)
+    total_norm = 0
+    for p in parameters:
+        param_norm = p.grad.data.norm(norm_type)
+        total_norm += param_norm.item() ** norm_type
+    total_norm = total_norm ** (1. / norm_type)
+    return total_norm
 
 if __name__ == '__main__':
     pass

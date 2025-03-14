@@ -18,7 +18,7 @@ def convert(json_file_path, group_by_key='image_id', creat_list_of='caption', sa
 
 if __name__ == '__main__':
     try:
-        convert('train.json')
+        convert('validation.json')
         exit(0)
     except Exception as e:
         print(e)

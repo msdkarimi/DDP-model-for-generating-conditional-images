@@ -14,14 +14,17 @@ def main():
                                 transform=get_image_transform('train', data_loader_config.image_size))
     train_data_loader = DataLoader(train_dataset, batch_size=data_loader_config.batch_size,
                                    shuffle=True, drop_last=True, num_workers=data_loader_config.num_workers)
-    val_data_loader = None
+    val_dataset = DareDataset('data', 'validation',
+                                transform=get_image_transform('validation', data_loader_config.image_size))
+    val_data_loader = DataLoader(val_dataset, batch_size=data_loader_config.batch_size,
+                                   shuffle=False, num_workers=data_loader_config.num_workers)
+
     trainer: Trainer = builder("trainer",
                                *(*get_all_config(),
                                  train_data_loader,
                                  val_data_loader),
                                **get_logger_config())
     trainer.run()
-
 
 if __name__ == '__main__':
     main()

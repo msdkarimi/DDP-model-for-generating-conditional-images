@@ -49,7 +49,8 @@ class ImageLogger(object):
             elif self.log_on == 'epoch' and  epoch % self.frequency == 0:
                 raise NotImplementedError('Logging Images Based On Epoch Is Not Implemented Yet!')
         elif mode == 'validation':
-            _log_images(mode)
+            if self.log_on == 'step' and ((epoch * num_steps_per_epoch) + batch_idx) % (self.frequency//4) == 0:
+                _log_images(mode)
 
 
 def build_image_logger(*args, **kwargs):

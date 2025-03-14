@@ -1,3 +1,5 @@
 ml-collections
 torch
 timm
+tqdm
+tensorboard

@@ -11,16 +11,11 @@ def get_config_trainer():
     trainer_configs = ConfigDict()
     trainer_configs.logger_name = 'ddpm_trainer'
     trainer_configs.mix_precision = False
-
     trainer_configs.optimizer_name = 'ADAM'
     trainer_configs.optimizer_base_lr = 5e-4
     trainer_configs.optimizer_weight_decay = -1 # TODO update
     trainer_configs.optimizer_betas = -1 # TODO update
     trainer_configs.n_epochs = 200
-
-
-
-
     return trainer_configs
 
 
@@ -39,8 +34,8 @@ def get_lr_scheduler_config():
     lr_scheduler_configs = ConfigDict()
     lr_scheduler_configs.name = 'linear'
     lr_scheduler_configs.t_in_epochs = False    # in order to update by batch not step
-    lr_scheduler_configs.warmup_epochs = 6    # in order to update by batch not step
-    lr_scheduler_configs.warmup_lr_init = 1e-8  # initial LR for warmup
+    lr_scheduler_configs.warmup_epochs = 0    # in order to update by batch not step
+    lr_scheduler_configs.warmup_lr_init = 1e-6  # initial LR for warmup
     lr_scheduler_configs.lr_min_rate = .01  # to multiply to decay the LR
     return lr_scheduler_configs
 
@@ -109,11 +104,12 @@ def get_unet_config():
     unet_configs.image_size = 32
     unet_configs.in_channels = 4
     unet_configs.out_channels = 4
-    unet_configs.model_channels = 224
-    unet_configs.attention_resolutions = [4, 2, 1]
+    unet_configs.model_channels = 192 #224
+    unet_configs.attention_resolutions = [8, 4, 2]
     unet_configs.num_res_blocks = 2
-    unet_configs.channel_mult = [1, 2, 3, 4]
+    unet_configs.channel_mult = [1, 2, 3, 5]
     unet_configs.num_head_channels = 32
+    # unet_configs.num_heads = 8 # instead of above
     unet_configs.use_spatial_transformer = True
     unet_configs.transformer_depth = 1
     unet_configs.context_dim = 768 # 640
@@ -167,7 +163,7 @@ def get_conditioning_config():
 
 def get_image_logger_config():
     image_logger_configs = ConfigDict()
-    image_logger_configs.frequency = 1000
+    image_logger_configs.frequency = 1000 # freq. for logging image generation/diffusion
     image_logger_configs.rescale = True
     image_logger_configs.log_on = 'step'
     image_logger_configs.clamp = True
@@ -178,7 +174,7 @@ def get_image_logger_config():
 
 def get_log_image_kwargs():
     image_logger_configs = ConfigDict()
-    image_logger_configs.log_every_t = 25
+    image_logger_configs.log_every_t = 25 # freq. for generation/diffusion step
     image_logger_configs.plot_progressive_rows = True
     image_logger_configs.ddim_steps = None
     image_logger_configs.plot_denoise_rows = False

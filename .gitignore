@@ -1,8 +1,8 @@
-# Byte-compiled / optimized / DLL files
 tst.py
 pretrained/
 .idea
 data/train
+data/validation
 data/*.txt
 data/*.jpg
 data/*.json

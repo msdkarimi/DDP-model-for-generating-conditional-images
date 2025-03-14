@@ -216,7 +216,8 @@ class LatentDiffusion(GaussianDiffusion):
         model_output = self.model(x_noisy, t, cond)
 
         loss_dict = {}
-        prefix = 'train' if self.training else 'val'
+        # prefix = 'train' if self.training else 'val'
+        prefix = 'train' if self.model.training else 'val'
 
 
         if self.parameterization == "eps":
