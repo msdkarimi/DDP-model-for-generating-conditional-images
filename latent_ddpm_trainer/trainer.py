@@ -29,12 +29,12 @@ class Trainer(LogHelper):
                  optimizer_weight_decay=-1,
                  optimizer_betas=(.99, 0.99),
                  n_epochs=1,
-                 validate_every=10000,
-                 log_every=50,
+                 validate_every=5000, # this is for validation
+                 log_every=50, # this is for logger
                  **kwargs
                  ):
 
-        self.num_steps_per_epoch = 10 #len(train_data_loader)
+        self.num_steps_per_epoch = len(train_data_loader)
         self.train_data_loader = train_data_loader
         self.val_data_loader = val_data_loader
         self.logger, logger_folder = build_logger(logger_name)
@@ -43,8 +43,6 @@ class Trainer(LogHelper):
         self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
         self.l_d_model:LatentDiffusion = builder(l_d_model_name, unet_configs, gaussian_diff_config, vae_config, text_embeder_config,
                                  **latent_diffusion_config).to(self.device)
-        print('exiting!!!!!')
-        exit()
         self.optimizer = torch.optim.AdamW(list(self.l_d_model.model.parameters()), lr=optimizer_base_lr) # TODO optimizer to do task
         self.lr_scheduler = build_scheduler(lr_scheduler_config, self.optimizer, self.num_steps_per_epoch, n_epochs)
         self.n_epochs = n_epochs
@@ -62,7 +60,7 @@ class Trainer(LogHelper):
         self.forward_backward_step(epoch, batch_idx, batch)
 
     def forward_backward_step(self, epoch, batch_idx, batch):
-        # self.image_logger.do_log(self.l_d_model, self.num_steps_per_epoch, 'train', epoch, batch_idx+1, batch, )
+        self.image_logger.do_log(self.l_d_model, self.num_steps_per_epoch, 'train', epoch, batch_idx+1, batch, )
         loss, loss_dict = self.feed_forward(batch)
         self.loss_meter_simple.update(loss_dict['train/loss_simple'].item())
         if (epoch*self.num_steps_per_epoch+batch_idx+1) % self.log_every == 0:
@@ -103,7 +101,7 @@ class Trainer(LogHelper):
             loss_dict_no_ema, loss_dict_ema = self.validate_one_batch(batch)
             if (idx + 1) % self.log_every == 0:
                 log_dict(loss_dict_ema, self.logger, idx, len(self.val_data_loader))
-            # self.image_logger.do_log(self.l_d_model, self.num_steps_per_epoch, 'validation', epoch, batch_idx, batch)
+            self.image_logger.do_log(self.l_d_model, self.num_steps_per_epoch, 'validation', epoch, batch_idx, batch)
 
     def run(self):
         # if self.check_pipeline():
@@ -138,8 +136,7 @@ class Trainer(LogHelper):
                 # iterator.set_description(f"Train/Epoch [{epoch + 1}] >> Batch [{batch_idx + 1}]")
                 self.train_one_step(epoch, batch_idx, a_batch)
                 if (epoch * batch_idx + batch_idx+1) % self.validate_every == 0:
-                    pass
-                    # self.validation(epoch, batch_idx)
+                    self.validation(epoch, batch_idx)
 
 @register_model
 def build_trainer(*args, **configs):

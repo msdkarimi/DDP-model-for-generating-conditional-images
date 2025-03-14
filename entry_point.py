@@ -23,7 +23,7 @@ def main():
                                *(*get_all_config(),
                                  train_data_loader,
                                  val_data_loader),
-                               **get_logger_config())
+                               **get_config_trainer())
     trainer.run()
 
 if __name__ == '__main__':

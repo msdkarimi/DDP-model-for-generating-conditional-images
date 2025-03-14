@@ -9,13 +9,13 @@ def get_logger_config():
 
 def get_config_trainer():
     trainer_configs = ConfigDict()
-    trainer_configs.logger_name = 'ddpm_trainer'
+    trainer_configs.logger_name = 'ddpm_trainer_logger'
     trainer_configs.mix_precision = False
     trainer_configs.optimizer_name = 'ADAM'
     trainer_configs.optimizer_base_lr = 5e-4
     trainer_configs.optimizer_weight_decay = -1 # TODO update
     trainer_configs.optimizer_betas = -1 # TODO update
-    trainer_configs.n_epochs = 200
+    trainer_configs.n_epochs = 20
     return trainer_configs
 
 
