@@ -12,7 +12,7 @@ from timm.scheduler.scheduler import Scheduler
 
 
 def build_scheduler(config, optimizer, n_iter_per_epoch, n_epochs):
-    num_steps = n_epochs * n_iter_per_epoch # TODO epoch handle
+    num_steps = n_epochs * n_iter_per_epoch
     warmup_steps = config.warmup_epochs * n_iter_per_epoch
 
     if config.name.lower() == 'linear':

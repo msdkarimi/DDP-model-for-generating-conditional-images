@@ -33,7 +33,7 @@ class FrozenCLIPEmbedder(AbstractEncoder):
         outputs = self.transformer(input_ids=tokens)
 
         z = outputs.last_hidden_state
-        return z, tokens
+        return z
 
     def encode(self, text):
         return self(text)
