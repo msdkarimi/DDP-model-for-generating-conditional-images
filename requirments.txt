@@ -1,5 +1,6 @@
 ml-collections
-torch
+termcolor
+einops
+transformers
 timm
-tqdm
 tensorboard

@@ -43,6 +43,8 @@ class Trainer(LogHelper):
         self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
         self.l_d_model:LatentDiffusion = builder(l_d_model_name, unet_configs, gaussian_diff_config, vae_config, text_embeder_config,
                                  **latent_diffusion_config).to(self.device)
+        print('exiting!!!!!')
+        exit()
         self.optimizer = torch.optim.AdamW(list(self.l_d_model.model.parameters()), lr=optimizer_base_lr) # TODO optimizer to do task
         self.lr_scheduler = build_scheduler(lr_scheduler_config, self.optimizer, self.num_steps_per_epoch, n_epochs)
         self.n_epochs = n_epochs

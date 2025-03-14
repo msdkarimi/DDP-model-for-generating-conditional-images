@@ -156,7 +156,8 @@ def get_first_stage_config():
 def get_conditioning_config():
     conditioning_configs = ConfigDict()
     conditioning_configs.name = 'clip_text_encoder'
-    conditioning_configs.version = "openai/clip-vit-large-patch14"
+    # conditioning_configs.version = "openai/clip-vit-large-patch14"
+    conditioning_configs.version = "pretrained/clip_model"
     # conditioning_configs.n_embed = 768
     # conditioning_configs.n_layer = 32
     return conditioning_configs

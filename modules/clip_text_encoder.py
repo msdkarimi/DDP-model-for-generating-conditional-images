@@ -11,7 +11,8 @@ class AbstractEncoder(nn.Module):
 
 class FrozenCLIPEmbedder(AbstractEncoder):
     """Uses the CLIP transformer encoder for text (from Hugging Face)"""
-    def __init__(self, version="openai/clip-vit-large-patch14", device="cuda", max_length=77):
+    # def __init__(self, version="openai/clip-vit-large-patch14", device="cuda", max_length=77):
+    def __init__(self, version="../pretrained/clip_model", device="cuda", max_length=77):
         super().__init__()
         self.tokenizer = CLIPTokenizer.from_pretrained(version)
         self.transformer = CLIPTextModel.from_pretrained(version)
@@ -31,7 +32,7 @@ class FrozenCLIPEmbedder(AbstractEncoder):
         outputs = self.transformer(input_ids=tokens)
 
         z = outputs.last_hidden_state
-        return z
+        return z, tokens
 
     def encode(self, text):
         return self(text)
@@ -47,7 +48,9 @@ if __name__ == "__main__":
     from utils.utils import count_params
     txt_encoder = FrozenCLIPEmbedder().cuda()
     count_params(txt_encoder, verbose=True)
-    for i in range(100000):
-        _txt = 'hi i am just a test'
-        z_txt = txt_encoder.encode(_txt)
-        print(z_txt.shape)
+    # for i in range(1):
+    _txt = 'hi i am just a test'
+    z_txt, tokens = txt_encoder.encode(_txt)
+    print(z_txt.shape)
+    print(tokens)
+    print(z_txt)
