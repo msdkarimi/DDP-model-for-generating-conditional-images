@@ -67,6 +67,7 @@ class Trainer(LogHelper):
             loss_dict.update({'grad_norm': self.grad_norm_meter.avg})
             memory_used = torch.cuda.max_memory_allocated() / (1024.0 ** 3)
             loss_dict.update({'alloc_mem': memory_used})
+            loss_dict.update({'lr': self.optimizer.param_groups[0]['lr']})
             log_dict(loss_dict, self.logger, batch_idx, len(self.train_data_loader), epoch, self.loss_meter_simple.avg)
         self.backpropagation(epoch, batch_idx, loss)
 
