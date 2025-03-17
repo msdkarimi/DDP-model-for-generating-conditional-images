@@ -111,8 +111,8 @@ def get_unet_config():
     unet_configs.channel_mult = [1, 2, 3, 4]
     unet_configs.num_head_channels = 32
     # unet_configs.num_heads = 8 # instead of above
-    unet_configs.use_spatial_transformer = True
-    unet_configs.transformer_depth = 1
+    # unet_configs.use_spatial_transformer = True
+    # unet_configs.transformer_depth = 1
     # unet_configs.context_dim = 768
     return unet_configs
 
