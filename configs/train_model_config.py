@@ -55,7 +55,7 @@ def get_diffusion_config():
     diffusion_configs.linear_end = 0.0120 # 0.0195
     diffusion_configs.timesteps = 1000
     diffusion_configs.beta_schedule = 'linear'
-    diffusion_configs.loss_type = 'l2'
+    diffusion_configs.loss_type = 'l1'
     diffusion_configs.first_stage_key = 'image'
     # diffusion_configs.cond_stage_key = 'caption'
     # diffusion_configs.image_size = 64

@@ -257,6 +257,10 @@ class GaussianDiffusion(nn.Module):
                 loss = torch.nn.functional.mse_loss(target, pred)
             else:
                 loss = torch.nn.functional.mse_loss(target, pred, reduction='none')
+        elif self.loss_type == 'l1':
+            loss = (target - pred).abs()
+            if mean:
+                loss = loss.mean()
 
         else:
             raise NotImplementedError(f"unknown loss type {self.loss_type}")
