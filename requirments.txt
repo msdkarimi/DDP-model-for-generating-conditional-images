@@ -5,3 +5,4 @@ transformers
 timm
 tensorboard
 matplotlib
+open_clip_torch

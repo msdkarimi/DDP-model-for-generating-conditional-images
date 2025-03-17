@@ -1,6 +1,6 @@
 from ml_collections import ConfigDict
 # __all__ = ['get_all_config', 'get_config_trainer']
-
+BATCH_SIZE = 32
 def get_logger_config():
     logger_configs = ConfigDict()
     logger_configs.logger_name = 'ddpm_trainer_logger'
@@ -12,9 +12,10 @@ def get_config_trainer():
     trainer_configs.logger_name = 'ddpm_trainer_logger'
     trainer_configs.mix_precision = False
     trainer_configs.optimizer_name = 'ADAM'
-    trainer_configs.optimizer_base_lr = 5e-4
+    trainer_configs.optimizer_base_lr = 1e-4
     trainer_configs.optimizer_weight_decay = -1 # TODO update
     trainer_configs.optimizer_betas = -1 # TODO update
+    trainer_configs.batch_size = BATCH_SIZE
     trainer_configs.n_epochs = 20
     return trainer_configs
 
@@ -42,7 +43,7 @@ def get_lr_scheduler_config():
 
 def get_dataloader_config():
     dataloader_configs = ConfigDict()
-    dataloader_configs.batch_size = 4
+    dataloader_configs.batch_size = BATCH_SIZE
     dataloader_configs.num_workers = 0
     dataloader_configs.image_size = 256
     return dataloader_configs
@@ -50,8 +51,8 @@ def get_dataloader_config():
 def get_diffusion_config():
     diffusion_configs = ConfigDict()
     # diffusion_configs.name = 'gaussian_diffusion'
-    diffusion_configs.linear_start = 0.0015
-    diffusion_configs.linear_end = 0.0195
+    diffusion_configs.linear_start = 0.00085 # 0.0015
+    diffusion_configs.linear_end = 0.0120 # 0.0195
     diffusion_configs.timesteps = 1000
     diffusion_configs.beta_schedule = 'linear'
     diffusion_configs.loss_type = 'l2'
@@ -104,15 +105,15 @@ def get_unet_config():
     unet_configs.image_size = 32
     unet_configs.in_channels = 4
     unet_configs.out_channels = 4
-    unet_configs.model_channels = 192 #224
+    unet_configs.model_channels = 320 #224
     unet_configs.attention_resolutions = [4, 4, 1]
     unet_configs.num_res_blocks = 2
     unet_configs.channel_mult = [1, 2, 4, 4]
-    unet_configs.num_head_channels = 32
+    unet_configs.num_head_channels = 64
     # unet_configs.num_heads = 8 # instead of above
     unet_configs.use_spatial_transformer = True
     unet_configs.transformer_depth = 1
-    unet_configs.context_dim = 768 # 640
+    unet_configs.context_dim = 1024 # 768 # 640
     return unet_configs
 
 def get_latent_diffusion_config():
@@ -125,9 +126,9 @@ def get_latent_diffusion_config():
     latent_diffusion_configs.cond_stage_forward = None
     latent_diffusion_configs.conditioning_key = 'crossattn'
     # latent_diffusion_configs.scale_factor = 1.0
-    # latent_diffusion_configs.scale_by_std = False
+    latent_diffusion_configs.scale_by_std = False
     latent_diffusion_configs.scale_factor = 0.18215
-    latent_diffusion_configs.scale_by_std = True
+    # latent_diffusion_configs.scale_by_std = True
 
 
     return latent_diffusion_configs
