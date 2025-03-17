@@ -31,8 +31,8 @@ class LatentDiffusion(GaussianDiffusion):
                  ):
         vae_name = kwargs_autoencoder.name
         del kwargs_autoencoder.name
-        conditioner_name = kwargs_conditioning_config.name
-        del kwargs_conditioning_config.name
+        # conditioner_name = kwargs_conditioning_config.name
+        # del kwargs_conditioning_config.name
 
         self.conditioning_key = conditioning_key
 
