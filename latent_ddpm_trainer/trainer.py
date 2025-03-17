@@ -8,6 +8,8 @@ from modules.image_logger import build_image_logger
 import traceback
 from utils.utils import log_dict, AverageMeter, get_grad_norm
 from tqdm import tqdm
+from torch.utils.tensorboard import SummaryWriter
+from modules.model_logger import log_model_gradients
 
 
 class Trainer(LogHelper):
@@ -47,6 +49,7 @@ class Trainer(LogHelper):
         self.lr_scheduler = build_scheduler(lr_scheduler_config, self.optimizer, self.num_steps_per_epoch, n_epochs)
         self.n_epochs = n_epochs
         self.image_logger = build_image_logger(logger_name, logger_folder, log_image_kwargs, **image_logger_config)
+        self.writer = SummaryWriter(f'{logger_name}/{logger_folder}/run')
         self.fp_16 = mix_precision
         self.validate_every = validate_every # TODO handle this in config
         self.log_every = log_every # TODO handle this in config
@@ -69,6 +72,7 @@ class Trainer(LogHelper):
             loss_dict.update({'alloc_mem': memory_used})
             loss_dict.update({'lr': self.optimizer.param_groups[0]['lr']})
             log_dict(loss_dict, self.logger, batch_idx, len(self.train_data_loader), epoch, self.loss_meter_simple.avg)
+            self.writer.add_scalar("Avg. loss/train", self.loss_meter_simple.avg, (epoch * self.num_steps_per_epoch) + batch_idx )
         self.backpropagation(epoch, batch_idx, loss)
 
     def feed_forward(self, batch)-> torch.Tensor:
@@ -79,6 +83,7 @@ class Trainer(LogHelper):
         if not self.fp_16:
             self.optimizer.zero_grad()
             loss.backward()
+            log_model_gradients(self.writer, self.l_d_model.model, _step)
             self.grad_norm_meter.update(get_grad_norm(list(self.l_d_model.model.parameters())))
             self.optimizer.step()
             self.lr_scheduler.step_update(_step)
@@ -104,6 +109,14 @@ class Trainer(LogHelper):
             loss_dict_no_ema, loss_dict_ema = self.validate_one_batch(batch)
             if (idx + 1) % self.log_every == 0:
                 log_dict(loss_dict_ema, self.logger, idx, len(self.val_data_loader))
+                log_dict(loss_dict_no_ema, self.logger, idx, len(self.val_data_loader))
+
+                self.writer.add_scalar("ema loss/val", loss_dict_ema['val/loss_simple_ema'],
+                                       epoch*len(self.val_data_loader) + batch_idx)
+                self.writer.add_scalar("model loss/val-ema", loss_dict_no_ema['val/loss_simple'],
+                epoch * len(self.val_data_loader) + batch_idx)
+
+
             self.image_logger.do_log(self.l_d_model, self.num_steps_per_epoch, 'validation', epoch, batch_idx, batch)
 
     def run(self):

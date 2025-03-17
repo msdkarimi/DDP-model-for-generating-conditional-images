@@ -4,3 +4,4 @@ einops
 transformers
 timm
 tensorboard
+matplotlib
