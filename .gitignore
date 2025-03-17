@@ -9,3 +9,4 @@ data/*.json
 data/*.ttf
 ddpm_trainer_logger/
 __pycache__/
+.DS_Store
