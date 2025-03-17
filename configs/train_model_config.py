@@ -105,15 +105,15 @@ def get_unet_config():
     unet_configs.image_size = 32
     unet_configs.in_channels = 4
     unet_configs.out_channels = 4
-    unet_configs.model_channels = 320 #224
-    unet_configs.attention_resolutions = [4, 4, 1]
+    unet_configs.model_channels = 224 #224
+    unet_configs.attention_resolutions = [8, 4, 2]
     unet_configs.num_res_blocks = 2
-    unet_configs.channel_mult = [1, 2, 4, 4]
-    unet_configs.num_head_channels = 64
+    unet_configs.channel_mult = [1, 2, 3, 4]
+    unet_configs.num_head_channels = 32
     # unet_configs.num_heads = 8 # instead of above
     unet_configs.use_spatial_transformer = True
     unet_configs.transformer_depth = 1
-    unet_configs.context_dim = 1024 # 768 # 640
+    # unet_configs.context_dim = 768
     return unet_configs
 
 def get_latent_diffusion_config():
@@ -184,7 +184,7 @@ def get_log_image_kwargs():
 
 
 def get_all_config():
-    return get_unet_config(), get_diffusion_config(), get_first_stage_config(), get_conditioning_config(), get_latent_diffusion_config(), get_image_logger_config(), get_log_image_kwargs(), get_lr_scheduler_config()
+    return get_unet_config(), get_diffusion_config(), get_first_stage_config(), {}, get_latent_diffusion_config(), get_image_logger_config(), get_log_image_kwargs(), get_lr_scheduler_config()
 
 if __name__ == '__main__':
     print(get_all_config())
