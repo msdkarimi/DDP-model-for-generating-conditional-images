@@ -45,7 +45,7 @@ class LatentDiffusion(GaussianDiffusion):
         self.first_stage_model = builder(vae_name, **kwargs_autoencoder)
         # self.first_stage_model = builder(vae_name, **kwargs_autoencoder).to(self.device)
         # self.cond_stage_model:FrozenCLIPEmbedder = builder(conditioner_name, **kwargs_conditioning_config).to(self.device)
-        self.cond_stage_model:FrozenOpenCLIPEmbedder = builder(conditioner_name, **kwargs_conditioning_config)
+        # self.cond_stage_model:FrozenOpenCLIPEmbedder = builder(conditioner_name, **kwargs_conditioning_config)
 
         # count_params(self.model, verbose=True)
         # count_params(self.cond_stage_model, verbose=True)
