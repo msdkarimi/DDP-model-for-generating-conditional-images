@@ -207,13 +207,12 @@ class LatentDiffusion(GaussianDiffusion):
                                   verbose=verbose, timesteps=timesteps, quantize_denoised=quantize_denoised,
                                   mask=mask, x0=x0)
 
-
-    def p_losses(self, x_start, cond, t, noise=None):
+    def p_losses(self, x_start, t, noise=None):
         # since we do not learn the variance thus the ELBO calculation is not feasible.
         noise = default(noise, lambda: torch.randn_like(x_start))
 
         x_noisy = self.q_sample(x_start=x_start, t=t, noise=noise)
-        model_output = self.model(x_noisy, t, cond)
+        model_output = self.model(x_noisy, t)
 
         loss_dict = {}
         # prefix = 'train' if self.training else 'val'
@@ -246,8 +245,7 @@ class LatentDiffusion(GaussianDiffusion):
 
         return loss, loss_dict
 
-
-    def _forward_to_net(self, x, c, *args, **kwargs):
+    def _forward_to_net(self, x, *args, **kwargs):
         t = torch.randint(0, self.num_timesteps, (x.shape[0],), device=self.device).long()
         # if self.model.conditioning_key is not None:
         if self.conditioning_key is not None:
@@ -257,7 +255,7 @@ class LatentDiffusion(GaussianDiffusion):
             # if self.shorten_cond_schedule:  # TODO: drop this option
             #     tc = self.cond_ids[t].to(self.device)
             #     c = self.q_sample(x_start=c, t=tc, noise=torch.randn_like(c.float()))
-        return self.p_losses(x, c, t, *args, **kwargs)
+        return self.p_losses(x, t, *args, **kwargs)
 
 
     @torch.no_grad()
@@ -294,11 +292,12 @@ class LatentDiffusion(GaussianDiffusion):
                 else:
                     raise NotImplementedError(f'only supports caption conditioning')
         else:
-            raise NotImplementedError(f'model.conditioning_key could not be None!')
+            return [z, None]
+            # raise NotImplementedError(f'model.conditioning_key could not be None!')
 
     def forward(self, batch):
         x, c = self.get_input(batch, self.first_stage_key)
-        loss, loss_dict = self._forward_to_net(x, c)
+        loss, loss_dict = self._forward_to_net(x)
 
         return loss, loss_dict
 

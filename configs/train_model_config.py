@@ -120,11 +120,11 @@ def get_latent_diffusion_config():
     latent_diffusion_configs = ConfigDict()
     latent_diffusion_configs.name = 'latent_diffusion'
     latent_diffusion_configs.num_timesteps_cond = 1
-    latent_diffusion_configs.cond_stage_key = "caption"
+    # latent_diffusion_configs.cond_stage_key = "caption"
     latent_diffusion_configs.cond_stage_trainable = False
     # latent_diffusion_configs.concat_mode = True
     latent_diffusion_configs.cond_stage_forward = None
-    latent_diffusion_configs.conditioning_key = 'crossattn'
+    # latent_diffusion_configs.conditioning_key = 'crossattn'
     # latent_diffusion_configs.scale_factor = 1.0
     latent_diffusion_configs.scale_by_std = False
     latent_diffusion_configs.scale_factor = 0.18215
